@@ -1,0 +1,77 @@
+// @vitest-environment jsdom
+import { afterEach,expect,test,vi } from 'vitest'
+import { cleanup,render,screen,waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
+import { AuthContext } from './auth/auth-context'
+import { requestJson } from './auth/api'
+import Pos from './pages/Pos'
+
+vi.mock('./auth/api',()=>({ requestJson:vi.fn() }))
+afterEach(()=>{cleanup();localStorage.clear();vi.resetAllMocks()})
+const product={ product_id:1,name:'Test medicine',generic_name:'Generic',unit_price:'1.01',available:'5' }
+const quote={items:[{...product,quantity:1,line_total:'1.01'}],total:'1.01'}
+const receipt={sale_id:1,receipt_no:'POS-test',username:'cashier',sale_date:'2026-11-20T01:00:00Z',total_amount:'1.01',items:[{sale_item_id:1,product_name:'Test medicine',batch_no:'B1',expiry_date:'2028-01-01',quantity:1,unit_price:'1.01',line_total:'1.01'}],payments:[{amount_paid:'2.00',change_due:'0.99'}]}
+function mount(role='employee') {render(<MemoryRouter><AuthContext.Provider value={{user:{user_id:3,role,full_name:'Cashier'},logout:vi.fn()}}><Pos /></AuthContext.Provider></MemoryRouter>)}
+function mockApi(checkout) {requestJson.mockImplementation(async(path,options)=>path==='/pos/checkout' ? checkout(options) : path==='/pos/quote' ? {data:quote} : {data:[product],total:1,page:1,limit:20})}
+async function ready(user) {
+  await user.click(await screen.findByRole('button',{name:'Add Test medicine'}))
+  await user.click(screen.getByRole('button',{name:'Review total'}))
+  await screen.findByText('Total: PHP 1.01')
+  await user.type(screen.getByLabelText('Cash received (PHP)'),'2.00')
+}
+test.each(['employee','manager','admin'])('%s can check out with server quote and stored receipt',async role=>{
+  mockApi(async()=>({data:{receipt,replayed:false}}));const user=userEvent.setup();mount(role)
+  expect(screen.getByText(/Senior Citizen\/PWD discounted checkout is unavailable/)).toBeTruthy()
+  await ready(user);await user.click(screen.getByRole('button',{name:'Complete cash sale'}))
+  await screen.findByRole('heading',{name:'Transaction complete'})
+  expect(screen.getByText(/Change: PHP 0.99/)).toBeTruthy()
+  const body=JSON.parse(requestJson.mock.calls.find(([path])=>path==='/pos/checkout')[1].body)
+  expect(body.items).toEqual([{product_id:1,quantity:1}]);expect(body.amount_paid).toBe('2.00')
+  expect(body).not.toHaveProperty('total_amount');expect(body).not.toHaveProperty('discount_id');expect(body.request_id).toMatch(/^[a-f0-9-]{36}$/)
+})
+test('network uncertainty freezes cart and retries the identical request',async()=>{
+  let attempts=0;mockApi(async()=>{if(++attempts===1)throw new Error('network');return {data:{receipt,replayed:true}}})
+  const user=userEvent.setup();mount();await ready(user)
+  await user.click(screen.getByRole('button',{name:'Complete cash sale'}))
+  await screen.findByText(/Checkout outcome is uncertain/)
+  expect(screen.getByRole('button',{name:'Add Test medicine'}).disabled).toBe(true)
+  await user.click(screen.getByRole('button',{name:'Retry same checkout'}))
+  await screen.findByRole('heading',{name:'Transaction complete'})
+  const calls=requestJson.mock.calls.filter(([path])=>path==='/pos/checkout')
+  expect(calls[0][1].body).toBe(calls[1][1].body)
+})
+test('insufficient cash shows server error without confirming sale',async()=>{
+  mockApi(async()=>{throw Object.assign(new Error('Cash received must cover the full total.'),{status:422})})
+  const user=userEvent.setup();mount();await ready(user)
+  await user.click(screen.getByRole('button',{name:'Complete cash sale'}))
+  expect((await screen.findByRole('alert')).textContent).toMatch(/cover the full total/)
+  expect(screen.queryByRole('heading',{name:'Transaction complete'})).toBeNull()
+  expect(screen.getByLabelText('Cash received (PHP)').disabled).toBe(true)
+})
+test('cart change invalidates quoted total and search uses the POS endpoint',async()=>{
+  mockApi(async()=>({data:{receipt}}));const user=userEvent.setup();mount();await ready(user)
+  await user.clear(screen.getByLabelText('Quantity for Test medicine'))
+  await user.type(screen.getByLabelText('Quantity for Test medicine'),'2')
+  expect(screen.queryByText('Total: PHP 1.01')).toBeNull()
+  await user.type(screen.getByLabelText('Search POS products'),'Generic')
+  await user.click(screen.getByRole('button',{name:'Search'}))
+  await waitFor(()=>expect(requestJson.mock.calls.some(([path])=>path.includes('q=Generic'))).toBe(true))
+})
+test('refresh after lost commit response recovers stored receipt without a second POST',async()=>{
+  mockApi(async()=>{throw new Error('lost response')});const user=userEvent.setup();mount();await ready(user)
+  await user.click(screen.getByRole('button',{name:'Complete cash sale'}));await screen.findByText(/Checkout outcome is uncertain/)
+  const saved=localStorage.getItem('tgp.checkout.v1.3');expect(saved).toBeTruthy()
+  cleanup();requestJson.mockImplementation(async path=>path.startsWith('/pos/checkouts/')?{data:{status:'completed',receipt}}:{data:[product],total:1,page:1,limit:20})
+  mount();await user.click(await screen.findByRole('button',{name:'Check transaction status'}))
+  await screen.findByRole('heading',{name:'Transaction complete'})
+  expect(localStorage.getItem('tgp.checkout.v1.3')).toBeNull()
+  expect(requestJson.mock.calls.filter(([path])=>path==='/pos/checkout')).toHaveLength(1)
+})
+test('storage failure blocks checkout before HTTP submission',async()=>{
+  mockApi(async()=>({data:{receipt}}));const user=userEvent.setup();mount();await ready(user)
+  const spy=vi.spyOn(Storage.prototype,'setItem').mockImplementation(()=>{throw new Error('quota')})
+  await user.click(screen.getByRole('button',{name:'Complete cash sale'}));await screen.findByRole('alert')
+  expect(requestJson.mock.calls.filter(([path])=>path==='/pos/checkout')).toHaveLength(0)
+  spy.mockRestore()
+})
