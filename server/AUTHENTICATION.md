@@ -1,8 +1,9 @@
 # Authentication and access control
 
-Implemented scope: login, authenticated user, logout/revocation, admin-created
-staff accounts, account deactivation and role dashboard placeholders. Inventory,
-POS, reporting, pricing and approval operations are not implemented.
+Authentication/account scope: login, authenticated user, logout/revocation,
+Admin account listing/search/details, staff creation and deactivation. The
+Admin User accounts screen is now available at `/users`. Other implemented
+modules have their own documentation; the scope here is account management.
 
 ## Requirements and roles
 
@@ -23,6 +24,8 @@ No public registration or password-reset/setup endpoint exists.
 | GET `/api/auth/dashboard/manager` | Admin or manager |
 | GET `/api/auth/dashboard/employee` | Any of the three roles |
 | POST `/api/auth/users` | Admin; creates employee or manager only |
+| GET `/api/auth/users` | Admin; paginated public fields, name/username search |
+| GET `/api/auth/users/:id` | Admin; supported public account details |
 | POST `/api/auth/users/:id/deactivate` | Admin; employee/manager targets only |
 
 Create body: `username`, `password`, `role`, optional `full_name`. No client ID,
@@ -31,6 +34,51 @@ deactivate body: `{}`. Unknown fields are rejected. Usernames are case-sensitive
 1-64 ASCII letters, digits, underscore, dot or hyphen; creation passwords are
 12-128 characters (not trimmed); names are 1-120 trimmed characters if supplied.
 These are technical input limits, not additional pharmacy workflow requirements.
+
+## Admin User accounts interface - 2026-11-20
+
+Source: System Request Form Section 6 (page 3), Phase 3 `users` and
+`activity_logs` definitions, and approved wireframe panel 14. No Phase 2 SDS
+was available; unspecified account operations were not added.
+
+Open Administration > User accounts. The wireframe's User, Username, Role and
+Status columns are retained. Search matches a literal case-insensitive substring
+in username or full name. Click a user's name for details; Add user opens the
+existing Employee/Manager creation workflow. Deactivation requires explicit UI
+confirmation, preserves the account/history, and uses the unchanged transactional
+service and session-revocation mechanism. Admin/self and inactive accounts have
+no deactivation action. Admin accounts remain read-only in this interface.
+
+List query: optional `q` (max 200 characters), `page` (1..999999, default 1),
+`limit` (1..100, default 20). Unknown or repeated query fields are rejected.
+Detail IDs must be positive PostgreSQL INTEGER values; detail query fields are
+not accepted. Reads select only `user_id`, `username`, `full_name`, `role`,
+`status`; routes also explicitly project public fields. Hashes are never fetched
+by these read queries or returned. Search and pagination use SQL parameters.
+Read operations create no audit or account records.
+
+Creation accepts the existing named fields and role limits, without a default
+password. The initial password input is cleared at submission, is not placed in
+browser storage, and is not displayed in details. Network uncertainty does not
+automatically retry creation or deactivation: review/refresh first. An account
+API 401 triggers the existing session refresh; `/auth/me` remains excluded from
+that event to prevent refresh loops.
+
+Not implemented: password reset, reactivation, account deletion, role editing,
+additional Admin creation, or a new account policy. No schema/migration change.
+
+Validation for this addition: backend **53 passed, 0 failed, 6 PostgreSQL suites
+skipped** (59 reported tests); frontend **76 passed, 0 failed, 0 skipped** across
+10 files; lint/build exit 0. New HTTP account tests run a real local Express
+server with an in-memory repository and real Argon2id/JWT services. Fixture
+rollback tests simulate repository rollback, not PostgreSQL transaction proof.
+SQL parameter/projection tests inspect query calls. A separate real Neon
+`BEGIN READ ONLY` transaction verified new listing/search/detail SELECTs and
+public result columns, then rolled back; no account or audit records were
+written. Initial sandbox network probes were denied (EACCES); the permitted
+read-only retry succeeded. Production account mutations were not tested.
+Browser access host is unavailable: screenshots/E2E/visual acceptance remain
+unverified. Older test counts later in this document are historical.
 
 ## Security and schema preservation
 

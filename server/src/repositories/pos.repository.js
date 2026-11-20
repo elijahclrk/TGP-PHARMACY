@@ -1,8 +1,11 @@
 import { insertWithId } from './auth.repository.js';
 const today = "(clock_timestamp() AT TIME ZONE 'Asia/Manila')::date";
-const fail = status => { throw Object.assign(new Error('Checkout cannot be completed'), { status }); };
+const fail = (status, details = {}) => { throw Object.assign(new Error('Checkout cannot be completed'), { status, ...details }); };
+const closureAction = id => 'checkout.closed:' + id.toLowerCase();
 
 export function createPosRepository(poolProvider) {
+  const closures = async (client, requestId) => (await client.query(
+    "SELECT user_id FROM activity_logs WHERE module='POS_checkout' AND action=$1", [closureAction(requestId)])).rows;
   async function receipt(id, actor, client = poolProvider()) {
     const sale = (await client.query(`SELECT s.sale_id,s.user_id,u.username,s.receipt_no,s.sale_date,s.total_amount::text,s.approved_by
       FROM sales s JOIN users u ON u.user_id=s.user_id WHERE s.sale_id=$1 AND ($2::boolean OR s.user_id=$3)`,
@@ -22,7 +25,7 @@ export function createPosRepository(poolProvider) {
     const products = (await client.query(`SELECT product_id,name,round(unit_price,2)::text AS unit_price
       FROM products WHERE product_id=ANY($1::int[]) AND unit_price>=0 AND unit_price<'Infinity'::numeric
       ORDER BY product_id FOR UPDATE`, [ids])).rows;
-    if (products.length !== items.length) fail(409);
+    if (products.length !== items.length) fail(409, { correctable: true });
     const lines = (await client.query(`SELECT p.product_id,p.name,round(p.unit_price,2)::text AS unit_price,i.quantity,
       (round(p.unit_price,2)*i.quantity)::text AS line_total
       FROM jsonb_to_recordset($1::jsonb) AS i(product_id integer,quantity integer)
@@ -45,7 +48,7 @@ export function createPosRepository(poolProvider) {
         allocations.push({ batch_id: batch.batch_id, quantity, unit_price: line.unit_price });
         remaining -= quantity;
       }
-      if (remaining) fail(409);
+      if (remaining) fail(409, { correctable: true });
     }
     return allocations;
   }
@@ -53,9 +56,26 @@ export function createPosRepository(poolProvider) {
     receipt,
     async status(client, actor, requestId) {
       const rows = (await client.query('SELECT sale_id,user_id FROM sales WHERE receipt_no=$1', ['POS-'+requestId.toLowerCase()])).rows;
-      if (!rows.length || rows[0].user_id !== actor.user_id) return { status:'not_found' };
+      if (!rows.length) {
+        const closed = await closures(client, requestId);
+        return { status: closed.some(row => row.user_id === actor.user_id) ? 'closed' : 'not_found' };
+      }
+      if (rows[0].user_id !== actor.user_id) return { status:'not_found' };
       if (rows.length !== 1) fail(409);
       return { status:'completed',receipt:await receipt(rows[0].sale_id,actor,client) };
+    },
+    // Caller holds the same transaction advisory lock used by ALL checkouts.
+    // This retires only an unused request reference; it never voids a sale.
+    async resolve(client, actor, requestId, audit) {
+      const rows = (await client.query('SELECT sale_id,user_id FROM sales WHERE receipt_no=$1 FOR UPDATE', ['POS-'+requestId.toLowerCase()])).rows;
+      if (rows.length) {
+        if (rows.length !== 1 || rows[0].user_id !== actor.user_id) fail(404);
+        return { status:'completed',receipt:await receipt(rows[0].sale_id,actor,client) };
+      }
+      const closed = await closures(client, requestId);
+      if (closed.some(row => row.user_id !== actor.user_id)) fail(404);
+      if (!closed.length) await audit(client, actor.user_id, closureAction(requestId), 'POS_checkout');
+      return { status:'closed' };
     },
     async products(query) {
       const result = await poolProvider().query(`WITH found AS (
@@ -88,17 +108,19 @@ export function createPosRepository(poolProvider) {
         if (!samePayment || JSON.stringify(quantities) !== JSON.stringify(expected)) fail(409);
         return { receipt: stored, replayed: true };
       }
+      const closed = await closures(client, data.request_id);
+      if (closed.length) fail(409, { checkoutClosed: closed.every(row => row.user_id === actor.user_id) });
       const priced = await price(client, data.items);
       const allocations = await allocate(client, priced.items);
       const cash = (await client.query('SELECT $1::numeric >= $2::numeric AS enough, round($1::numeric,2)::text AS paid, ($1::numeric-$2::numeric)::text AS change', [data.amount_paid, priced.total])).rows[0];
-      if (!cash.enough) fail(422);
+      if (!cash.enough) fail(422, { correctable: true });
       const sale = await insertWithId(client, `INSERT INTO sales(sale_id,user_id,receipt_no,sale_date,total_amount,approved_by,discount_id,senior_pwd_id,vat_exempt)
         VALUES($1,$2,$3,CURRENT_TIMESTAMP,$4,NULL,NULL,NULL,NULL) ON CONFLICT(sale_id) DO NOTHING RETURNING sale_id`,
       [actor.user_id, reference, priced.total]);
       for (const allocation of allocations) {
         const updated = await client.query(`UPDATE batches SET qty_on_hand=qty_on_hand-$2
           WHERE batch_id=$1 AND qty_on_hand>=$2 AND expiry_date>${today} RETURNING batch_id`, [allocation.batch_id, allocation.quantity]);
-        if (!updated.rowCount) fail(409);
+        if (!updated.rowCount) fail(409, { correctable: true });
         await insertWithId(client, 'INSERT INTO sale_items(sale_item_id,sale_id,batch_id,quantity,unit_price) VALUES($1,$2,$3,$4,$5) ON CONFLICT(sale_item_id) DO NOTHING RETURNING sale_item_id',
           [sale.sale_id, allocation.batch_id, allocation.quantity, allocation.unit_price]);
       }

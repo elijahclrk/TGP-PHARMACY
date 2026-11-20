@@ -30,6 +30,7 @@ jobs:
       RUN_PURCHASING_DB_TESTS: '0'
       RUN_POS_DB_TESTS: '0'
       RUN_REPORTS_DB_TESTS: '0'
+      RUN_IMAGE_DB_TESTS: '0'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -49,7 +50,7 @@ jobs:
         if: always()
         run: |
           echo '### PostgreSQL integration: SKIPPED' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Authentication, inventory, purchasing, POS/FEFO and reporting integration suites are disabled. No isolated TLS test database with baseline/migration history is provisioned. No production credentials are used. A green job does not certify database integration.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Authentication, inventory, purchasing, POS/FEFO, reporting and product-image PostgreSQL integration suites are disabled. No isolated TLS test database is provisioned. No production credentials are used. A green job does not certify database integration. Image provider tests use mocks only.' >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
     name: Frontend tests, lint and build

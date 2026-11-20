@@ -8,6 +8,8 @@ import Inventory from './pages/Inventory'
 import Purchasing from './pages/Purchasing'
 import Pos from './pages/Pos'
 import Reports from './pages/Reports'
+import Users from './pages/Users'
+import AuditLogs from './pages/AuditLogs'
 
 function Protected({ role, management, children }) {
   const { user } = useAuth()
@@ -25,6 +27,8 @@ function AppRoutes() {
     <Route path="/inventory" element={<Protected><Inventory /></Protected>} />
     <Route path="/pos" element={<Protected><Pos /></Protected>} />
     <Route path="/reports" element={<Protected management><Reports /></Protected>} />
+    <Route path="/users" element={<Protected role="admin"><Users /></Protected>} />
+    <Route path="/audit-logs" element={<Protected role="admin"><AuditLogs /></Protected>} />
     {[['suppliers', 'suppliers'], ['purchase-orders', 'orders'], ['stock-ins', 'receiving']].map(([path, kind]) => <Route key={path} path={`/${path}`} element={<Protected management><Purchasing key={kind} kind={kind} /></Protected>} />)}
     {['admin', 'manager', 'employee'].map(role => <Route key={role} path={`/${role}`} element={<Protected role={role} />} />)}
     <Route path="*" element={<Navigate to={user ? `/${user.role}` : '/login'} replace />} />

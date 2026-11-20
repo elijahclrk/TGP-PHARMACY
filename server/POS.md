@@ -1,5 +1,21 @@
 # Point of Sale and FEFO — provisional MVP
 
+## Finalization: rejected-checkout correction
+
+Current local validation (2026-11-20): **44 backend tests passed, 0 failed, 6 PostgreSQL suites skipped; 47 frontend tests passed; lint/build passed.** Seven new route/repository protocol tests use DB doubles, and six frontend/API-helper tests cover the correction/storage behavior. The added PostgreSQL closure scenario was not run: no approved disposable resource is available and finalization forbids creating a database or mutating existing Neon. Earlier results below are historical, not a current integration pass.
+
+Checkout now runs inside a savepoint within the existing advisory-lock transaction. Correctable stock/pricing/payment rejection rolls the attempted sale/lines/payment/stock back to that savepoint, then records `checkout.closed:<UUID>` in existing `activity_logs` under module `POS_checkout`. The closure and rejection acknowledgement commit together. Only a committed acknowledgement carries `checkout_state:'closed'`; audit/commit uncertainty never unlocks the cashier automatically.
+
+Every new checkout checks durable closure after existing receipt lookup and before pricing/stock writes. Delayed requests for a closed reference cannot post. No new table, column, index, migration, or change to historical records is required. Existing successful-sale audit events remain in `POS`; report eligibility is unchanged.
+
+`POST /api/pos/checkouts/:requestId/resolve` accepts exactly `{}` and uses the same lock, role/status recheck, cookie and CSRF controls. An already paid sale returns the original cashier's receipt. Otherwise the unused reference is closed idempotently before the UI permits editing. Other users' references are not disclosed. This retires an unposted request, not a cancellation, refund, void or payment-settlement rule.
+
+GET status now returns `closed` to its original cashier when appropriate. `not_found` alone remains nonterminal. The UI restores the saved cart/tender after confirmed closure, clears the quote and requires fresh review before a new UUID is used. Unknown/5xx/storage failures retain the saved attempt. Clearing a resolved reference refuses to remove a different saved reference. Use one active POS tab; independent simultaneous carts remain outside the single-reference guarantee.
+
+**Retention requirement:** keep `POS_checkout` closure events. They are durable protocol state as well as audit evidence; purging them can reopen old references. External writers must not bypass the common lock and closure checks. There is still no unique receipt-number database constraint. No purge job or external writer was added.
+
+The old operator-only rejected-attempt limitation below is superseded by this fix. Real PostgreSQL locking/rollback and browser E2E verification remain outstanding; current Neon has no users/data, and no real sale or account was fabricated to present a completed demonstration.
+
 ## Checkout recovery update
 
 Actual verification on 2026-11-20: full backend run with all five DB suites enabled **66 passed, 0 failed, 0 skipped** (163.24 seconds); frontend **35 passed**; ESLint and production build passed. Isolated schemas were cleaned up and public data counts/constraints/migration history remained unchanged. Earlier test counts below are historical. Added frontend cases cover retained-storage remount after simulated lost response and storage failure preventing HTTP submission. Backend adds fresh-runtime/session recovery and original-cashier status isolation to existing concurrent retry, payment and rollback checks.

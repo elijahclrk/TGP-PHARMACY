@@ -28,7 +28,7 @@ test('employee product view supports search and shows low stock without edit con
   expect(screen.queryByRole('button', { name: /Edit/ })).toBeNull()
   await user.type(screen.getByLabelText('Search'), 'generic')
   await user.click(screen.getByRole('button', { name: 'Search products' }))
-  await waitFor(() => expect(requestJson.mock.calls.at(-1)[0]).toContain('q=generic'))
+  await waitFor(() => expect(requestJson.mock.calls.filter(([path]) => path.startsWith('/products?')).at(-1)[0]).toContain('q=generic'))
 })
 test('loading, error retry and empty states are visible', async () => {
   requestJson.mockImplementationOnce(() => new Promise(() => {}))
@@ -56,6 +56,7 @@ test('manager can open zero-stock batch editor; expiry window is explicit', asyn
   await user.click(await screen.findByRole('button', { name: 'Add zero-stock batch' }))
   expect(screen.getByText(/Quantity is fixed at zero/)).toBeTruthy()
   expect(document.querySelector('input[name="qty_on_hand"]')).toBeNull()
+  await user.click(screen.getByRole('button', { name: 'Cancel' }))
   await user.selectOptions(screen.getByLabelText('Expiry filter'), 'near_expiry')
   await user.clear(screen.getByLabelText('Window (days)'))
   await user.type(screen.getByLabelText('Window (days)'), '7')

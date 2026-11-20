@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import {afterEach,expect,test,vi} from 'vitest'
-import {cleanup,render,screen} from '@testing-library/react'
+import {cleanup,render,screen,waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {MemoryRouter} from 'react-router-dom'
 import {AuthContext} from '../auth/auth-context'
@@ -21,6 +21,38 @@ test('employee dashboard does not fetch financial reports',()=>{
   mount(<Dashboard/>,'employee');expect(requestJson).not.toHaveBeenCalled()
   expect(screen.getByRole('link',{name:/Cashier workspace/})).toBeTruthy()
   expect(screen.queryByRole('region',{name:'Management summary'})).toBeNull()
+})
+test.each(['manager','admin'])('%s dashboard chart and product-performance visibility respect current report permissions',async role=>{
+  requestJson.mockImplementation(async path=>path.startsWith('/reports/products')?{data:[{product_id:1,name:'Recorded product',units:'2',sales_amount:'12.34'}]}:{...summary,data:[]})
+  mount(<Dashboard/>,role)
+  await screen.findByText('No sales trend data for this range.')
+  expect(requestJson.mock.calls.some(([path])=>path.startsWith('/reports/products'))).toBe(role==='admin')
+  expect(requestJson.mock.calls.some(([path])=>path.startsWith('/audit-logs'))).toBe(role==='admin')
+  if(role==='admin')await screen.findByText('Recorded product')
+  else expect(screen.queryByRole('region',{name:'Product performance'})).toBeNull()
+})
+
+test('dashboard alert records and Admin activity use actual read APIs without invented samples',async()=>{
+  requestJson.mockImplementation(async path=>path.startsWith('/audit-logs')?{data:[{log_id:7,action:'sale.paid:4',username:'Recorded cashier',logged_at:'2026-11-20 09:00:00'}]}:path.startsWith('/reports/low-stock')?{total:1,data:[{product_id:2,name:'Recorded low medicine',qty_on_hand:'2',reorder_level:5}]}:path.startsWith('/reports/near-expiry')?{total:1,data:[{batch_id:8,product_name:'Recorded expiry medicine',batch_no:'REC-8',expiry_date:'2026-12-01',qty_on_hand:'3'}]}:{...summary,data:[]})
+  mount(<Dashboard/>,'admin')
+  await screen.findByText('Recorded low medicine is running low')
+  expect(screen.getByText('Recorded expiry medicine · Batch REC-8')).toBeTruthy()
+  expect(await screen.findByText('sale.paid:4')).toBeTruthy()
+  expect(screen.getByText(/Recorded cashier · 2026-11-20 09:00:00/)).toBeTruthy()
+  expect(requestJson.mock.calls.some(([path])=>path==='/reports/near-expiry?days=30&limit=2')).toBe(true)
+})
+test('dashboard Daily/Weekly controls use existing report grouping with unchanged date bounds',async()=>{
+  requestJson.mockResolvedValue({...summary,data:[]})
+  mount(<Dashboard/>,'manager')
+  await screen.findByText('No sales trend data for this range.')
+  const {today,monday}=manilaDates()
+  const daily=screen.getByRole('button',{name:'Daily'}), weekly=screen.getByRole('button',{name:'Weekly'})
+  expect(daily.getAttribute('aria-pressed')).toBe('true')
+  await userEvent.click(weekly)
+  await waitFor(()=>expect(weekly.getAttribute('aria-pressed')).toBe('true'))
+  expect(requestJson.mock.calls.filter(([path])=>path.startsWith('/reports/sales')).at(-1)[0]).toBe(`/reports/sales?from=${monday}&to=${today}&period=week`)
+  await userEvent.click(daily)
+  await waitFor(()=>expect(requestJson.mock.calls.filter(([path])=>path.startsWith('/reports/sales')).at(-1)[0]).toBe(`/reports/sales?from=${monday}&to=${today}&period=day`))
 })
 test('manager sees reviewed/unreviewed totals but no monthly or admin options',async()=>{
   requestJson.mockResolvedValue(summary);mount(<ReportPanel/>)

@@ -1,5 +1,47 @@
 # Phase 4 requirements and deployment readiness audit
 
+## Subsequent owner-authorized account update - 2026-11-20
+
+The project owner subsequently authorized one initial Admin and one Employee in existing Neon `neondb`. Both active accounts were created through the existing bootstrap/account services, with random private credentials and Argon2id verification. **18 real local HTTP checks passed**, including both logins, role dashboards, Employee restrictions, logout and revocation. Earlier empty-user/login-blocker statements below are historical and superseded by this update. Business tables remain empty; stock receiving, paid sales and populated reports are still not demonstrated. No new database, business seed, schema/migration change, image activation, commit, push or deployment occurred. See [ACADEMIC_ACCOUNT_SETUP.md](phase4/ACADEMIC_ACCOUNT_SETUP.md) for the redacted evidence and private credential-file instructions. No instructor/adviser approval is implied.
+
+## Authoritative finalization update - 2026-11-20
+
+This section supersedes historical status/test claims later in this report. Finalization fixes and documents existing functionality only; no optional module, architecture replacement, database, infrastructure, seed, reset, deployment, commit or push was performed. Original Phase 3 files/migrations and connection TLS configuration remain unchanged. Cloudinary and discounts remain disabled; migration 006 remains unapplied.
+
+**Submission decision: partial completion with explicit blockers, not a completed working demonstration or live-pharmacy release.** Existing Neon was checked read-only and all 15 application tables, including users, remain empty. No valid account can log in, and there are no products/stock/transactions to demonstrate. Under the no-data-change/no-new-resource instruction, that cannot be repaired by fabricated data. Do not execute the earlier prepared demo initialization/seeding tools for this finalization.
+
+Verified changes/evidence:
+
+| Area | Current result |
+| --- | --- |
+| POS rejected-checkout defect | Correctable rejection rolls back to a savepoint and durably closes its UUID in existing audit logs under the same transaction lock. UI unlocks only after committed closure and requires re-review. Resolution returns an existing paid receipt or closes an unused reference; late retries cannot create another sale. No refund/void policy or schema change. |
+| Backend tests | `npm test`: **44 passed, 0 failed, 6 skipped**, 50 reported tests. Includes seven new rejection/resolve protocol tests and two production-static tests. DB behavior in those protocol tests uses doubles; real PostgreSQL verification is not claimed. |
+| Frontend tests/lint/build | **47 passed across 7 files**, 0 failed; ESLint and Vite production build exit 0. Six added correction/storage/API-helper cases. |
+| Existing data/schema | 001/002/004 recorded, baseline checksum matches, no image column, all application row counts zero. No schema/data mutation. |
+| Current module query compatibility | **16 read-only repository checks passed** on existing Neon for product/inventory, supplier/PO/receiving, POS product/status queries and reports. Empty results are not populated workflow evidence. |
+| Startup / authentication | Existing frontend/API and health endpoints checked with actual HTTP. Protected requests reject missing sessions; nonexistent credentials reject generically without a success audit. Successful live login blocked by no users; JWT/Argon/RBAC behavior tested with fixtures. |
+| Deployment preparation | Multi-stage Dockerfile, context exclusions, blank environment template, and production Express static/SPA serving for the existing single-origin architecture. **15 real production-mode HTTP smoke checks passed** against the compiled client with DB access disabled. No container image build, host setup, new service or deployment. |
+| Documentation | Text user manual, bug/limitation register, deployment guide, exact finalization results and final presentation checklist supplied. No screenshot, signature or acceptance invented. |
+
+Six PostgreSQL suites (auth, inventory, purchasing, POS, reports, product images) remain explicitly skipped. Existing resources are not authorized for schema-creating fixtures, no new database is allowed, and Docker's daemon/browser access host were unavailable. Updated POS SQL runtime/concurrency tests, real-browser E2E/visual checks, Linux container build, HTTPS/proxy and deployed-host verification remain incomplete. The prior user-reported green hosted CI run predates these changes; no fresh hosted result is claimed.
+
+| Official week | Current completion evidence / gap |
+| --- | --- |
+| 13 | Stack, repository and CI preparation exist; collaborative PR/contribution, assigned Sprint 4 planning and missing SDS/wireframes evidence are not fabricated. |
+| 14 | Authorized core modules implemented/tested locally; actual interactive demonstration is blocked by no users/data and remaining approved-scope gaps. |
+| 15 | Owner-approved Cloudinary feature code exists, but stays disabled with 006 unapplied; no real provider interaction or adviser/instructor acceptance evidence. |
+| 16 | CI workflow and production configuration prepared; updated hosted CI, approved host/domain and cloud-deployed prototype URL absent. |
+| 17 | Automated checks, text manual and bug log supplied; six DB suites, actual browser screenshots/E2E and UAT remain outstanding. |
+| 18 | Final presentation checklist supplied; actual defense deck/rehearsal/acceptance remain unevidenced. |
+
+Remaining release blockers: Senior/PWD compliance; actual accounts/data and permitted successful walkthrough; real DB/browser/host verification; operational proxy/session/backup ownership and acceptance of provisional business definitions. Retain checkout-closure audit events and the common writer lock; external writers/purges cannot bypass this invariant. Full settings/audit-review/user-management UI, returns/adjustment posting and fiscal receipt validation remain incomplete rather than newly implemented here.
+
+See [FINALIZATION_RESULTS.md](phase4/FINALIZATION_RESULTS.md), [USER_MANUAL.md](USER_MANUAL.md), [BUG_LOG.md](BUG_LOG.md), [DEPLOYMENT.md](DEPLOYMENT.md), and [final presentation checklist](phase4/FINAL_PRESENTATION_CHECKLIST.md). No resource expansion or restarted implementation plan is proposed; next steps are review, truthful submission scope acceptance and verification/actions only when separately authorized.
+
+---
+
+## Historical audit snapshot (superseded where the update above differs)
+
 Audit date: 2026-11-20, Asia/Manila. Scope: local source, available approved documents, implementation notes and local checks. No application code, database schema, connection configuration or business data was changed. No deployment or new business module was implemented. Frontend build regenerated its ignored build output.
 
 ## Executive decision

@@ -133,6 +133,17 @@ test('isolated PostgreSQL POS and FEFO checkout', { skip: process.env.RUN_POS_DB
       assert.equal((await post(checkout([{product_id:2,quantity:2}],'3.99'))).status,422);
       assert.equal(await quantity(21),beforeQty);
     });
+    await t.test('rejected references remain closed across correction and later retries',async()=>{
+      const rejected=checkout([{product_id:2,quantity:1}],'0.01'),before=await quantity(21);
+      const failure=await post(rejected);assert.equal(failure.status,422);assert.equal(failure.body.checkout_state,'closed');
+      assert.equal((await request('/checkouts/'+rejected.request_id)).body.data.status,'closed');
+      const corrected=checkout([{product_id:2,quantity:1}],'10');assert.equal((await post(corrected)).status,201);
+      assert.equal((await post({...rejected,amount_paid:'10'})).status,409);assert.equal(await quantity(21),before-1);
+      const unused=randomUUID();const resolution=await request('/checkouts/'+unused+'/resolve',{method:'POST',body:{}});
+      assert.equal(resolution.body.data.status,'closed');assert.equal((await post({...corrected,request_id:unused})).status,409);
+      const paid=await request('/checkouts/'+corrected.request_id+'/resolve',{method:'POST',body:{}});
+      assert.equal(paid.body.data.status,'completed');assert.equal(await quantity(21),before-1);
+    });
     await t.test('strict payment/cart inputs and discounts/totals cannot be injected', async () => {
       const base=checkout([{product_id:2,quantity:1}],'2.00');
       for (const amount_paid of ['-1','NaN','Infinity','2.001',2,null,'1e3']) assert.equal((await post({...base,amount_paid})).status,400);

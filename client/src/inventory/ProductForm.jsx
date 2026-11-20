@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { requestJson } from '../auth/api'
 import { Field, buttonClass, secondaryClass } from './shared'
+import Modal from '../components/Modal'
 
 export default function ProductForm({ product, admin, onSaved, onCancel }) {
   const [error, setError] = useState('')
@@ -15,8 +16,7 @@ export default function ProductForm({ product, admin, onSaved, onCancel }) {
     catch (failure) { setError(failure.status ? failure.message : 'Unable to save. Please try again.') }
     finally { setPending(false) }
   }
-  return <section aria-label="Product editor" className="mb-7 rounded-xl border border-green-200 bg-white p-6">
-    <h2 className="text-xl font-semibold">{product ? 'Edit product' : 'Add product'}</h2>
+  return <Modal title={product ? 'Edit product' : 'Add product'} onClose={onCancel} busy={pending}><section aria-label="Product editor">
     <form onSubmit={submit} className="mt-5">
       {error && <p role="alert" className="mb-4 text-sm text-red-800">{error}</p>}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -29,5 +29,5 @@ export default function ProductForm({ product, admin, onSaved, onCancel }) {
       <p className="mt-4 text-sm text-slate-500">{admin ? 'Leave the reorder level blank if it has not been confirmed.' : 'Reorder thresholds are set by an administrator.'} Leave unconfirmed categories blank.</p>
       <div className="mt-6 flex gap-3"><button disabled={pending} className={buttonClass}>{pending ? 'Saving…' : 'Save product'}</button><button type="button" disabled={pending} onClick={onCancel} className={secondaryClass}>Cancel</button></div>
     </form>
-  </section>
+  </section></Modal>
 }

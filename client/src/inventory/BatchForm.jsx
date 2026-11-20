@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { requestJson } from '../auth/api'
 import { Field, buttonClass, secondaryClass } from './shared'
+import Modal from '../components/Modal'
 
 export default function BatchForm({ batch, productId, onSaved, onCancel }) {
   const [error, setError] = useState('')
@@ -14,9 +15,8 @@ export default function BatchForm({ batch, productId, onSaved, onCancel }) {
     catch (failure) { setError(failure.status === 409 ? 'Recorded cost or receiving batch identity cannot be changed after use.' : failure.status ? failure.message : 'Unable to save. Please try again.') }
     finally { setPending(false) }
   }
-  return <section aria-label="Batch editor" className="mb-7 rounded-xl border border-green-200 bg-white p-6">
-    <h2 className="text-xl font-semibold">{batch ? 'Edit batch metadata' : 'Add zero-stock batch'}</h2>
-    <p className="mt-2 text-sm text-slate-600">Quantity is {batch ? 'read-only' : 'fixed at zero'}. Stock-in and stock adjustments are not available in this phase.</p>
+  return <Modal title={batch ? 'Edit batch metadata' : 'Add zero-stock batch'} onClose={onCancel} busy={pending}><section aria-label="Batch editor">
+    <p className="mt-2 text-sm text-slate-600">Quantity is {batch ? 'read-only' : 'fixed at zero'}. Receive stock through an approved stock-in record. Direct quantity editing is unavailable.</p>
     <form onSubmit={submit} className="mt-5">
       {error && <p role="alert" className="mb-4 text-sm text-red-800">{error}</p>}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -27,5 +27,5 @@ export default function BatchForm({ batch, productId, onSaved, onCancel }) {
       </div>
       <div className="mt-6 flex gap-3"><button disabled={pending} className={buttonClass}>{pending ? 'Saving…' : 'Save batch'}</button><button type="button" disabled={pending} onClick={onCancel} className={secondaryClass}>Cancel</button></div>
     </form>
-  </section>
+  </section></Modal>
 }

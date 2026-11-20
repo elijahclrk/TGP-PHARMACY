@@ -17,6 +17,21 @@ export function createAuthRepository(poolProvider) {
     'INSERT INTO activity_logs(log_id,user_id,action,module,logged_at) VALUES($1,$2,$3,$4,CURRENT_TIMESTAMP) ON CONFLICT(log_id) DO NOTHING RETURNING log_id', [userId, action, module]);
   return {
     findById,
+    async listUsers({ q, page, limit }) {
+      const result = await poolProvider().query(`WITH filtered AS (
+        SELECT user_id,username,full_name,role,status FROM users
+        WHERE $1='' OR strpos(lower(username),lower($1))>0
+          OR strpos(lower(coalesce(full_name,'')),lower($1))>0
+      ) SELECT (SELECT count(*)::int FROM filtered) AS total,
+        coalesce((SELECT json_agg(r) FROM (SELECT * FROM filtered
+          ORDER BY lower(coalesce(full_name,username)),user_id LIMIT $2 OFFSET $3) r),'[]'::json) AS data`,
+      [q, limit, (page - 1) * limit]);
+      return { ...result.rows[0], page, limit };
+    },
+    async publicUserById(id) {
+      return (await poolProvider().query(
+        'SELECT user_id,username,full_name,role,status FROM users WHERE user_id=$1', [id])).rows[0];
+    },
     async findByUsername(username) { return (await poolProvider().query(
       'SELECT user_id, username, full_name, role, status, password_hash FROM users WHERE username=$1', [username])).rows[0]; },
     audit,

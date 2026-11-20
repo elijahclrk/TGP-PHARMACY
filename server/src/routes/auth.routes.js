@@ -6,7 +6,7 @@ import { getAuthConfig } from '../config/auth.js';
 import { createSessions } from '../services/sessions.js';
 import { verifyPassword } from '../services/passwords.js';
 import { createAccount } from '../services/accounts.js';
-import { loginSchema, userSchema, validateBody } from '../services/auth-validation.js';
+import { loginSchema, userSchema, validateBody, accountListQuery, accountId } from '../services/auth-validation.js';
 import { requireAuth, requireRole, requireTrustedRequest, publicUser } from '../middleware/auth.js';
 
 export function createAuthRouter({ config = getAuthConfig(), repository = createAuthRepository(getPool),
@@ -52,6 +52,19 @@ export function createAuthRouter({ config = getAuthConfig(), repository = create
     const permitted = { admin: ['admin'], manager: ['admin', 'manager'], employee: ['admin', 'manager', 'employee'] };
     return requireRole(...permitted[req.params.role])(req, res, next);
   }, (req, res) => res.json({ success: true, role: req.auth.user.role }));
+  router.get('/users', authenticate, requireRole('admin'), async (req, res) => {
+    const query = accountListQuery.safeParse(req.query);
+    if (!query.success) return res.status(400).json({ success: false, message: 'Invalid account query parameters.' });
+    const result = await repository.listUsers(query.data);
+    res.json({ success: true, total: result.total, page: result.page, limit: result.limit, data: result.data.map(publicUser) });
+  });
+  router.get('/users/:id', authenticate, requireRole('admin'), async (req, res) => {
+    const id = accountId.safeParse(req.params.id);
+    if (!id.success || Object.keys(req.query).length) return res.status(400).json({ success: false, message: 'Invalid account request.' });
+    const user = await repository.publicUserById(id.data);
+    if (!user) return res.status(404).json({ success: false, message: 'Account not found.' });
+    res.json({ success: true, user: publicUser(user) });
+  });
   router.post('/users', authenticate, requireRole('admin'), validateBody(userSchema), async (req, res) => {
     try {
       const user = await createAccount(repository, req.auth.user.user_id, req.validated);

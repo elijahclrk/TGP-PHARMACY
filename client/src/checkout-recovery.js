@@ -12,4 +12,8 @@ export function saveCheckout(userId,payload) {
   localStorage.setItem(recoveryKey(userId),value)
   if(localStorage.getItem(recoveryKey(userId))!==value)throw new Error('Checkout recovery storage unavailable.')
 }
-export function clearCheckout(userId) {localStorage.removeItem(recoveryKey(userId))}
+export function clearCheckout(userId, requestId) {
+  const saved = loadCheckout(userId)
+  if (saved && saved.request_id !== requestId) throw new Error('Another saved checkout requires recovery.')
+  localStorage.removeItem(recoveryKey(userId))
+}
