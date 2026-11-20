@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests (database integration skipped)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    env:
+      NODE_ENV: test
+      DATABASE_URL: ''
+      CLIENT_ORIGIN: http://localhost:5173
+      RUN_AUTH_DB_TESTS: '0'
+      RUN_INVENTORY_DB_TESTS: '0'
+      RUN_PURCHASING_DB_TESTS: '0'
+      RUN_POS_DB_TESTS: '0'
+      RUN_REPORTS_DB_TESTS: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci
+      - name: Generate throwaway test signing secret
+        run: node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'JWT_SECRET=' + require('node:crypto').randomBytes(48).toString('hex') + '\n')"
+      - name: Run backend tests
+        run: npm test
+      - name: Report database coverage gap
+        if: always()
+        run: |
+          echo '### PostgreSQL integration: SKIPPED' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Authentication, inventory, purchasing, POS/FEFO and reporting integration suites are disabled. No isolated TLS test database with baseline/migration history is provisioned. No production credentials are used. A green job does not certify database integration.' >> "$GITHUB_STEP_SUMMARY"
+
+  frontend:
+    name: Frontend tests, lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Run frontend tests
+        run: npm test
+      - name: Lint frontend
+        run: npm run lint
+      - name: Build frontend
+        run: npm run build
