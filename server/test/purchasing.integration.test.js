@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { getPool, closePool } from '../src/config/database.js';
+import { getPool, closePool } from './support/disposable-database.js';
 import { createAuthRepository } from '../src/repositories/auth.repository.js';
 import { createPurchasingRepository } from '../src/repositories/purchasing.repository.js';
 import { createInventoryRepository } from '../src/repositories/inventory.repository.js';
@@ -87,7 +87,7 @@ test('isolated PostgreSQL purchasing and concurrent posting', { skip: process.en
     const app = express(); app.use(express.json()); app.use(cookieParser());
     app.use(createPurchasingRouter({ config, sessions, authRepository: auth, repository: repo }));
     app.use((_req, res) => res.status(404).json({ success: false })); app.use(errorHandler);
-    server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+    server = await listenForFetch(app);
     const request = async (path, { role = 'manager', method = 'GET', body, origin = config.origin } = {}) => {
       const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, { method,
         headers: { 'Content-Type': 'application/json', Origin: origin, 'X-TGP-Request': '1', ...(role ? { Cookie: cookies[role] } : {}) },
@@ -206,6 +206,22 @@ test('isolated PostgreSQL purchasing and concurrent posting', { skip: process.en
       assert.equal(await qty(ids[0]), 0); assert.equal(await qty(ids[1]), 2147483647);
       const after = (await request(`/stock-ins/${created.stock_in_id}`)).body.data;
       assert.equal(after.approved_by, null); assert.equal(after.history.length, 1);
+    });
+    await t.test('purchasing dates and audit history retain UTC instants across Node timezones',async()=>{
+      const prior=process.env.TZ;
+      try{
+        for(const [path,table,pk,date]of [['/purchase-orders','purchase_orders','po_id','order_date'],['/stock-ins','stock_ins','stock_in_id','date_received']]){
+          const original=(await db.query(`SELECT ${pk} AS id,extract(epoch FROM ${date} AT TIME ZONE 'UTC')*1000 AS millis FROM ${table} ORDER BY ${pk} DESC LIMIT 1`)).rows[0];
+          const logs=(await db.query("SELECT action,extract(epoch FROM logged_at AT TIME ZONE 'UTC')*1000 AS millis FROM activity_logs")).rows;
+          for(const zone of ['UTC','Asia/Manila','America/New_York']){
+            process.env.TZ=zone;
+            const detail=(await request(path+'/'+original.id)).body.data;
+            assert.equal(Date.parse(detail[date]),Math.floor(Number(original.millis)));
+            const list=(await request(path)).body.data.find(r=>r[pk]===original.id);assert.equal(Date.parse(list[date]),Math.floor(Number(original.millis)));
+            for(const h of detail.history)assert.equal(Date.parse(h.logged_at),Math.floor(Number(logs.find(l=>l.action===h.action).millis)));
+          }
+        }
+      }finally{if(prior===undefined)delete process.env.TZ;else process.env.TZ=prior;}
     });
     await t.test('deactivated managers immediately lose access', async () => {
       await db.query("UPDATE users SET status='inactive' WHERE user_id=2");

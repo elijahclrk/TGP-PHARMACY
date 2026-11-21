@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import { randomBytes } from 'node:crypto';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -32,7 +32,7 @@ async function fixture(t) {
   }};
   const app=express();app.use(express.json());app.use(cookieParser());
   app.use('/api/audit-logs',createAuditRouter({config,sessions,authRepository,repository}));app.use(notFound);app.use(errorHandler);
-  const server=app.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const server=await listenForFetch(app);t.after(()=>new Promise(resolve=>server.close(resolve)));
   const url='http://127.0.0.1:'+server.address().port;
   const cookie=id=>'tgp_session='+sessions.issue(id).token;
   async function request(path='',token,method='GET') {

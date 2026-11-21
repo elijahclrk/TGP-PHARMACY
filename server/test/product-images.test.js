@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import sharp from 'sharp';
@@ -44,7 +44,7 @@ async function setup(t, { enabled = true, limit = 100 } = {}) {
   const sessions = { verify:token=>users[token] ? {userId:Number(token),id:token} : null,revoke(){} };
   const app=express();app.use(express.json());app.use(cookieParser());
   app.use(createProductImagesRouter({config,sessions,authRepository,repository,provider,mutationLimit:limit}));
-  const server=app.listen(0,'127.0.0.1');await once(server,'listening');
+  const server=await listenForFetch(app);
   t.after(()=>new Promise(resolve=>server.close(resolve)));
   const url='http://127.0.0.1:'+server.address().port;
   async function request({method='GET',user=1,body,origin=config.origin,id='1'}={}) {

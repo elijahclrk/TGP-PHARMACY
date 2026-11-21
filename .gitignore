@@ -50,6 +50,17 @@ service-account*.json
 *.p12
 *.pfx
 
+# Disposable PostgreSQL and browser-review material is never checkpoint content.
+tgp-pg-*/
+tgp_uat_*/
+private.json
+private-uat.json
+*.crt
+*.crl
+*.csr
+playwright-report/
+test-results/
+
 # Local editor and operating-system files
 .idea/
 .vscode/*

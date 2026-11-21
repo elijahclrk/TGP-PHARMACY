@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthContext } from './auth-context'
-import { api } from './api'
+import { api,requestJson } from './api'
 
 export default function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [unavailable, setUnavailable] = useState(false)
   const requestId = useRef(0)
+  const [capabilities,setCapabilities]=useState(null)
+  const capabilityKey=session?.user?`${session.user.user_id}:${session.user.role}:${session.expiresAt}`:''
+  useEffect(()=>{
+    if(!capabilityKey)return
+    const controller=new AbortController()
+    requestJson('/workflows/capabilities',{signal:controller.signal}).then(result=>{if(!controller.signal.aborted)setCapabilities({key:capabilityKey,data:result.data})}).catch(()=>{if(!controller.signal.aborted)setCapabilities({key:capabilityKey,data:{enabled:false}})})
+    return ()=>controller.abort()
+  },[capabilityKey])
+  const workflowCapabilities={loading:Boolean(capabilityKey)&&capabilities?.key!==capabilityKey,enabled:capabilities?.key===capabilityKey&&capabilities?.data?.enabled===true,restocking:capabilities?.key===capabilityKey&&capabilities?.data?.restocking_enabled===true}
   const refresh = useCallback(async () => {
     const id = ++requestId.current
     try {
@@ -54,5 +63,5 @@ export default function AuthProvider({ children }) {
     ++requestId.current
     setSession(null)
   }
-  return <AuthContext.Provider value={{ user: session?.user, loading, unavailable, refresh, login, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user: session?.user, loading, unavailable, refresh, login, logout,workflowCapabilities }}>{children}</AuthContext.Provider>
 }

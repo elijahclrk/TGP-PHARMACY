@@ -1,5 +1,12 @@
 # Suppliers, purchase orders and stock-in
 
+**Batch 1 update (2026-11-21):** the Manager/Admin `/approvals` view reuses
+existing detail and secure approval operations. Lists support bounded
+`status=all|pending|approved` filtering by `approved_by`. Existing self-approval
+and stock-posting rules remain unchanged. Two-person decisions/rejection are
+inactive proposals, tested separately; no migration was applied. See
+[batch 1 design](../docs/phase4/DEVELOPMENT_BATCH1_DESIGN.md).
+
 ## Scope and approved MVP assumptions
 
 Implemented with the existing Phase 3 tables and approved constraints. No schema migrations, new foreign keys or application seed records are introduced. Source review covered Sections 5 and 6 of `docs/phase1/TGP_SystemRequestForm.pdf`, `docs/phase3/tgp_database.sql`, and `docs/phase3/TGP_ERD.png`. No wireframes were available in the workspace.

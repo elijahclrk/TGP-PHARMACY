@@ -2,8 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import pg from 'pg';
-import { createPoolConfig } from '../src/config/database.js';
+import { getPool, closePool } from './support/disposable-database.js';
 import { createProductImagesRepository } from '../src/repositories/product-images.repository.js';
 
 // NEVER falls back to DATABASE_URL or production Neon. Explicit test-only URL
@@ -11,9 +10,7 @@ import { createProductImagesRepository } from '../src/repositories/product-image
 test('isolated PostgreSQL image migration, constraints, stale edits and audit rollback', {
   skip: process.env.RUN_IMAGE_DB_TESTS !== '1',
 }, async () => {
-  assert.equal(process.env.IMAGE_TEST_DATABASE_APPROVED,'true','An independently provisioned disposable database is required');
-  assert(process.env.IMAGE_TEST_DATABASE_URL,'Test-only connection required');
-  const pool = new pg.Pool(createPoolConfig(process.env.IMAGE_TEST_DATABASE_URL));
+  const pool = getPool();
   const client = await pool.connect();
   const schema = 'tgp_images_test_' + randomUUID().replaceAll('-','');
   try {
@@ -52,6 +49,6 @@ test('isolated PostgreSQL image migration, constraints, stale edits and audit ro
     assert.equal((await repo.get(1)).image_public_id,null);
   } finally {
     await client.query('ROLLBACK');
-    client.release();await pool.end();
+    client.release();await closePool();
   }
 });

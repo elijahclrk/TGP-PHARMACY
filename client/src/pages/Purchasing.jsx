@@ -15,7 +15,7 @@ const settings = {
   receiving: { path: '/stock-ins', title: 'Stock-in', key: 'stock_in_id', action: 'Record delivery' },
 }
 const date = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not recorded'
-function Details({ kind, path, id, revision, onApproved, onEdit }) {
+export function PurchasingDetails({ kind, path, id, revision, onApproved, onEdit }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
@@ -60,6 +60,7 @@ export default function Purchasing({ kind }) {
   const refresh = () => setRevision(value => value + 1)
   return <Workspace>
     <PageHeading title={config.title} action={<button type="button" className={buttonClass} onClick={() => { setEditor({}); setNotice('') }}><Icon name="plus"/>{config.action}</button>} />
+    {kind==='receiving'&&<p className="mb-5 text-sm">Stock-In records physical deliveries. Expired and expiring-today quantities remain recorded stock and are excluded from POS eligibility; they are not sellable inventory. This does not create quarantine records or authorize use of unsuitable medicines. Follow the pharmacist's receiving/disposition procedure.</p>}
     {notice && <p role="status" className="mb-4 rounded-lg bg-green-100 p-4 text-green-900">{notice}</p>}
     {editor && <PurchasingForm key={editor.supplier_id || 'new'} kind={kind} path={config.path} record={editor.supplier_id ? editor : null} onCancel={() => setEditor(null)} onSaved={record => { setEditor(null); setSelected(record[config.key]); setNotice(kind === 'suppliers' ? 'Supplier saved.' : 'Pending record saved. Inventory unchanged.'); refresh() }} />}
     <section className="overflow-hidden rounded-sm border border-slate-200 bg-white">
@@ -71,6 +72,6 @@ export default function Purchasing({ kind }) {
       {!result.loading && !result.error && result.data && <Paging data={result.data} onPage={page => setQuery(current => ({ ...current, page }))} />}
     </section>
     {!selected && kind!=='suppliers' && <div className="surface mt-6 text-sm text-slate-500">Select a record to view its items, approval status and activity history.</div>}
-    {selected && <Details key={selected} kind={kind} path={config.path} id={selected} revision={revision} onEdit={setEditor} onApproved={() => { setNotice(kind === 'receiving' ? 'Approved. Stock posted successfully.' : 'Purchase order approved.'); refresh() }} />}
+    {selected && <PurchasingDetails key={selected} kind={kind} path={config.path} id={selected} revision={revision} onEdit={setEditor} onApproved={() => { setNotice(kind === 'receiving' ? 'Approved. Stock posted successfully.' : 'Purchase order approved.'); refresh() }} />}
   </Workspace>
 }

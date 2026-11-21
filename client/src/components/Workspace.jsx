@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom'
 import Brand from './Brand'
 import Icon from './Icon'
 import { useAuth } from '../auth/auth-context'
+import {useWorkflowCapabilities} from '../workflows/useWorkflowCapabilities'
 
 export default function Workspace({ children }) {
   const { user, logout } = useAuth()
+  const workflows=useWorkflowCapabilities()
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -15,7 +17,8 @@ export default function Workspace({ children }) {
   const manage = ['admin', 'manager'].includes(user.role)
   const admin = user.role === 'admin'
   const names = { '/pos': 'POS', '/products': 'Products', '/inventory': 'Batches', '/suppliers': 'Suppliers', '/purchase-orders': 'Purchase orders', '/stock-ins': 'Stock-in', '/reports': 'Reports', '/users': 'User accounts', '/audit-logs': 'Audit logs' }
-  const page = location.pathname === '/inventory' && location.search.includes('status=near_expiry') ? 'Alerts' : names[location.pathname] || 'Dashboard'
+  Object.assign(names, { '/alerts': 'Alerts', '/approvals': 'Approvals', '/reorder-thresholds': 'Reorder thresholds','/returns':'Customer returns','/adjustments':'Inventory adjustments','/notifications':'Notification preferences' })
+  const page = names[location.pathname] || 'Dashboard'
   function closeMenu() { setMenuOpen(false) }
   useEffect(() => {
     if (!menuOpen) return
@@ -49,8 +52,9 @@ export default function Workspace({ children }) {
       else (panel.querySelector('[aria-current="page"]') || panel.querySelector('a[href]'))?.focus()
     }
   }, [menuOpen])
-  const icons = { Dashboard: 'dashboard', 'POS / Sales': 'cart', 'Product search': 'search', Alerts: 'bell', Products: 'box', Batches: 'archive', Suppliers: 'truck', 'Purchase orders': 'file', 'Stock-in': 'download', 'Sales Reports': 'chart', 'User accounts': 'users', 'Reorder Thresholds': 'settings', 'Audit Logs': 'clock' }
+  const icons = { Returns:'return',Adjustments:'settings',Approvals: 'shield', Dashboard: 'dashboard', 'POS / Sales': 'cart', 'Product search': 'search', Alerts: 'bell', Products: 'box', Batches: 'archive', Suppliers: 'truck', 'Purchase orders': 'file', 'Stock-in': 'download', 'Sales Reports': 'chart', 'User accounts': 'users', 'Reorder Thresholds': 'settings', 'Audit Logs': 'clock' }
   const roleName = {admin:'Owner / Admin',manager:'Manager',employee:'Employee'}[user.role]
+  Object.assign(icons,{Notifications:'bell'})
   function link(path, label, active) {
     const selected = active ?? location.pathname === path
     return <Link key={label} to={path} aria-current={selected ? 'page' : undefined} onClick={closeMenu} className={`sidebar-link ${selected ? 'is-active' : ''}`}><Icon name={icons[label]} /><span>{label}</span></Link>
@@ -69,19 +73,20 @@ export default function Workspace({ children }) {
       <div className="sidebar-brand"><Brand /></div><div className="branch-card"><Icon name="pin" /><div><strong>Lawang Bato Branch</strong><span>Valenzuela City, Metro Manila</span></div></div>
       <nav aria-label="Workspace">
         <div className="sidebar-group"><p>Overview</p>{link(`/${user.role}`, 'Dashboard')}</div>
-        <div className="sidebar-group"><p>Operations</p>{link('/pos', 'POS / Sales')}{unavailable('Returns')}
+        <div className="sidebar-group"><p>Operations</p>{link('/pos', 'POS / Sales')}{workflows.enabled?link('/returns','Returns'):unavailable('Returns')}
           {link('/products#product-search', 'Product search', location.pathname === '/products' && location.hash === '#product-search')}
-          {link('/inventory?status=near_expiry', 'Alerts', location.pathname === '/inventory' && location.search.includes('status=near_expiry'))}
+          {link('/alerts', 'Alerts')}
         </div>
         <div className="sidebar-group"><p>Inventory</p>
           {link('/products', 'Products', location.pathname === '/products' && !location.hash)}
-          {link('/inventory', 'Batches', location.pathname === '/inventory' && !location.search.includes('status=near_expiry'))}
-          {manage && <>{link('/suppliers', 'Suppliers')}{link('/purchase-orders', 'Purchase orders')}{link('/stock-ins', 'Stock-in')}{unavailable('Adjustments')}</>}
+          {link('/inventory', 'Batches')}
+          {workflows.enabled&&link('/adjustments','Adjustments')}
+          {manage && <>{link('/suppliers', 'Suppliers')}{link('/purchase-orders', 'Purchase orders')}{link('/stock-ins', 'Stock-in')}{!workflows.enabled&&unavailable('Adjustments')}</>}
         </div>
-        {manage && <div className="sidebar-group"><p>Management</p>{unavailable('Approvals', 'In POs / Stock-in')}{link('/reports', 'Sales Reports')}</div>}
+        {manage && <div className="sidebar-group"><p>Management</p>{link('/approvals', 'Approvals')}{link('/reports', 'Sales Reports')}</div>}
         {admin && <div className="sidebar-group"><p>Administration</p>{link('/users', 'User accounts')}{unavailable('Discount Rules')}
-          {link('/products#reorder-level', 'Reorder Thresholds', location.pathname === '/products' && location.hash === '#reorder-level')}
-          {unavailable('Notifications')}{link('/audit-logs', 'Audit Logs')}
+          {link('/reorder-thresholds', 'Reorder Thresholds')}
+          {link('/notifications','Notifications')}{link('/audit-logs', 'Audit Logs')}
         </div>}
       </nav>
       <div className="sidebar-footer"><p>{roleName}</p><button type="button" onClick={signOut} disabled={pending} className="sidebar-signout"><Icon name="logout" />{pending ? 'Signing out…' : 'Sign out'}</button></div>
@@ -91,7 +96,7 @@ export default function Workspace({ children }) {
         <button type="button" ref={menuButton} className="mobile-menu-button ui-button ui-button-secondary" aria-expanded={menuOpen} aria-controls="workspace-navigation" onClick={() => setMenuOpen(value => !value)}>Menu</button>
         <p className="workspace-breadcrumb">Workspace <span aria-hidden="true">/</span> {page}</p>
         <div className="workspace-account"><span className="workspace-status"><i aria-hidden="true" />Signed in</span>
-          <Link className="inventory-alert-link" to="/inventory?status=near_expiry" aria-label="View inventory alerts"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg></Link>
+          <Link className="inventory-alert-link" to="/alerts" aria-label="View inventory alerts"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg></Link>
           <span className="account-avatar" aria-hidden="true">{(user.full_name || user.username || 'U').split(/\s+/).slice(0, 2).map(part => part[0]).join('')}</span>
           <div className="account-name"><strong>{user.full_name || user.username}</strong><span>{roleName}</span></div>
         </div>

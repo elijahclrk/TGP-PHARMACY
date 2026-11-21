@@ -39,12 +39,19 @@ describe('authentication routes', () => {
     await screen.findByText('No accounts found')
     expect(window.location.pathname).toBe('/users')
   })
-  test.each(['/suppliers', '/purchase-orders', '/stock-ins'])('employee cannot open management page %s directly', async path => {
+  test.each(['/suppliers', '/purchase-orders', '/stock-ins', '/approvals', '/reorder-thresholds'])('employee cannot open management page %s directly', async path => {
     window.history.replaceState({}, '', path)
     vi.stubGlobal('fetch', vi.fn(async () => reply(200, session('employee'))))
     render(<App />)
     await waitFor(() => expect(window.location.pathname).toBe('/employee'))
     expect(screen.queryByRole('button', { name: /Add supplier|Record delivery|Create purchase order/ })).toBeNull()
+  })
+  test('Manager cannot open Admin reorder thresholds by typing its URL', async () => {
+    window.history.replaceState({}, '', '/reorder-thresholds')
+    const fetcher=vi.fn(async()=>reply(200,session('manager')))
+    vi.stubGlobal('fetch',fetcher);render(<App />)
+    await waitFor(()=>expect(window.location.pathname).toBe('/manager'))
+    expect(fetcher.mock.calls.some(([path])=>String(path).includes('/api/products?'))).toBe(false)
   })
   test('anonymous direct dashboard access redirects to login without registration', async () => {
     window.history.replaceState({}, '', '/admin')
@@ -94,6 +101,6 @@ describe('authentication routes', () => {
     vi.stubGlobal('fetch', vi.fn(async () => reply(200, session('employee'))))
     render(<App />)
     await waitFor(() => expect(window.location.pathname).toBe('/employee'))
-    expect(screen.getByText(/Employee workspace/)).toBeTruthy()
+    expect(await screen.findByText(/Employee workspace/)).toBeTruthy()
   })
 })

@@ -4,14 +4,41 @@ import {cleanup,render,screen,waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {MemoryRouter} from 'react-router-dom'
 import {AuthContext} from '../auth/auth-context'
-import {requestJson} from '../auth/api'
+import {requestJson,downloadReport} from '../auth/api'
 import ReportPanel from './ReportPanel'
 import Dashboard from '../pages/Dashboard'
 import {php,manilaDates} from './format'
-vi.mock('../auth/api',()=>({requestJson:vi.fn()}))
+vi.mock('../auth/api',()=>({requestJson:vi.fn(),downloadReport:vi.fn()}))
 afterEach(()=>{cleanup();vi.resetAllMocks()})
 const summary={data:[],sales_amount:'9007199254740993.01',transactions:2,reviewed:1,unreviewed:1,excluded_records:0}
+test('Admin exports use applied server filters and exclude pagination; failures remain visible',async()=>{
+  requestJson.mockResolvedValue(summary);downloadReport.mockResolvedValue(undefined)
+  mount(<ReportPanel/>,'admin');await screen.findByText('PHP 9,007,199,254,740,993.01')
+  await userEvent.click(screen.getByRole('button',{name:'Export Excel (.xlsx)'}))
+  expect(downloadReport.mock.calls[0][0]).toContain('/reports/sales/export?from=')
+  expect(downloadReport.mock.calls[0][0]).toContain('format=xlsx')
+  expect(downloadReport.mock.calls[0][0]).not.toContain('page=')
+  downloadReport.mockRejectedValueOnce(new Error('Export unavailable'))
+  await userEvent.click(screen.getByRole('button',{name:'Export PDF'}));await screen.findByText('Export unavailable')
+})
+test('Manager export actions are absent and Admin slow-moving filter is explicit',async()=>{
+  requestJson.mockResolvedValue(summary);mount(<ReportPanel/>,'manager');await screen.findByText('PHP 9,007,199,254,740,993.01')
+  expect(screen.queryByRole('button',{name:'Export PDF'})).toBeNull();cleanup()
+  mount(<ReportPanel/>,'admin');await userEvent.selectOptions(screen.getByLabelText('Report'),'slow-moving')
+  await screen.findByLabelText('Maximum units sold in range')
+  await userEvent.clear(screen.getByLabelText('Maximum units sold in range'));await userEvent.type(screen.getByLabelText('Maximum units sold in range'),'3')
+  await userEvent.click(screen.getByRole('button',{name:'Apply / refresh'}))
+  await waitFor(()=>expect(requestJson.mock.calls.at(-1)[0]).toContain('max_units=3'))
+})
 function mount(node,role='manager'){render(<MemoryRouter><AuthContext.Provider value={{user:{role,full_name:'Staff'},logout:vi.fn()}}>{node}</AuthContext.Provider></MemoryRouter>)}
+test('Admin category rankings display server ranks and export applied category without client recalculation',async()=>{
+  requestJson.mockImplementation(async path=>path.startsWith('/reports/best-selling')?{data:[{current_category:'Recorded category',category_rank:2,name:'Recorded medicine',units:'3',sales_amount:'12.34'}],excluded_records:0}:summary)
+  downloadReport.mockResolvedValue(undefined);mount(<ReportPanel/>,'admin');await userEvent.selectOptions(screen.getByLabelText('Report'),'best-selling')
+  await screen.findByText('Recorded medicine');expect(screen.getByRole('columnheader',{name:'Rank in category'})).toBeTruthy()
+  await userEvent.type(screen.getByLabelText('Category (exact current label)'),'Recorded category');await userEvent.click(screen.getByRole('button',{name:'Apply / refresh'}))
+  await waitFor(()=>expect(requestJson.mock.calls.at(-1)[0]).toContain('category=Recorded+category'))
+  await userEvent.click(screen.getByRole('button',{name:'Export Excel (.xlsx)'}));expect(downloadReport.mock.calls.at(-1)[0]).toContain('category=Recorded+category')
+})
 test('money formatting preserves precision and Manila date crosses UTC boundary',()=>{
   expect(php('9007199254740993.01')).toBe('PHP 9,007,199,254,740,993.01')
   expect(php(null)).toBe('Unavailable')
@@ -39,7 +66,7 @@ test('dashboard alert records and Admin activity use actual read APIs without in
   expect(screen.getByText('Recorded expiry medicine · Batch REC-8')).toBeTruthy()
   expect(await screen.findByText('sale.paid:4')).toBeTruthy()
   expect(screen.getByText(/Recorded cashier · 2026-11-20 09:00:00/)).toBeTruthy()
-  expect(requestJson.mock.calls.some(([path])=>path==='/reports/near-expiry?days=30&limit=2')).toBe(true)
+  expect(requestJson.mock.calls.some(([path])=>path==='/reports/near-expiry?limit=2')).toBe(true)
 })
 test('dashboard Daily/Weekly controls use existing report grouping with unchanged date bounds',async()=>{
   requestJson.mockResolvedValue({...summary,data:[]})
@@ -54,10 +81,10 @@ test('dashboard Daily/Weekly controls use existing report grouping with unchange
   await userEvent.click(daily)
   await waitFor(()=>expect(requestJson.mock.calls.filter(([path])=>path.startsWith('/reports/sales')).at(-1)[0]).toBe(`/reports/sales?from=${monday}&to=${today}&period=day`))
 })
-test('manager sees reviewed/unreviewed totals but no monthly or admin options',async()=>{
+test('manager sees historical-review metadata but no monthly or admin options',async()=>{
   requestJson.mockResolvedValue(summary);mount(<ReportPanel/>)
   await screen.findByText('PHP 9,007,199,254,740,993.01')
-  expect(screen.getByText(/1 reviewed · 1 unreviewed/)).toBeTruthy()
+  expect(screen.getByText(/1 with historical review · 1 without historical review/)).toBeTruthy()
   for(const name of ['Monthly','Inventory valuation','Gross profit estimate','Sales by product'])expect(screen.queryByRole('option',{name})).toBeNull()
   expect(screen.getByText('No matching report records.')).toBeTruthy()
 })
@@ -65,7 +92,7 @@ test('admin can inspect unavailable profit with explicit cost coverage',async()=
   requestJson.mockImplementation(async path=>path.includes('/profit')?{sales_amount:'7.07',cost_amount:null,gross_profit:null,gross_margin_percent:null,unverified_lines:2,lines:3}:summary)
   mount(<ReportPanel/>,'admin');await screen.findByText('PHP 9,007,199,254,740,993.01')
   await userEvent.selectOptions(screen.getByLabelText('Report'),'profit')
-  await screen.findByText(/2 sale lines have unverified batch costs/)
+  await screen.findByText(/2 sale lines lack an approved cost basis/)
   expect(screen.getAllByText('Unavailable')).toHaveLength(3)
 })
 test('report failure supports retry and exposes excluded record coverage',async()=>{

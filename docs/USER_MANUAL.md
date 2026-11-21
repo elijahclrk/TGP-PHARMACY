@@ -1,5 +1,124 @@
 # TGP Pharmacy user manual
 
+## Batch 8 local demonstration — 2026-11-22
+
+Current [client walkthrough](phase4/BATCH8_CLIENT_WALKTHROUGH.md) covers cashier,
+delivery, independent approvals, returns/quarantine, authorized disposition,
+reports/exports and unavailable statutory features. Operators use the guarded
+[start/stop/reset handoff](phase4/BATCH8_DEMO_HANDOFF.md), never a production URL
+or real credentials. This synthetic local demonstration is not signed owner/
+pharmacist acceptance or a validated fiscal invoicing system.
+
+## Batch 7 local review additions
+
+Admin Reports now offers **Best-selling by category** and ranked **Slow-moving
+products**. Apply Manila dates and an optional exact current-category label.
+Ranks use reconciled units within each category, ties share a rank; slow-moving
+includes zero-sale products and the explicit maximum-unit filter. All eleven
+report types support Admin Excel/PDF downloads with the same applied filters.
+
+Admin **Notifications** controls two optional dashboard reminders on that account
+and browser only. Clearing browser storage resets them. Safety Alerts, stock
+rules and reports are unaffected; durable/shared settings and messaging are not
+enabled.
+
+Adjustment requests now have a searchable original-batch picker. Select a batch,
+enter a nonzero signed quantity/reason and submit; a different Manager/Admin must
+decide before stock posts. Employee request-only access remains subject to owner
+acceptance. Supplier deliveries must use Stock-In.
+
+Products/low-stock views distinguish recorded stock from within-date (expiry-only)
+and expired/today quantities. Expired/today stock cannot be allocated by POS;
+physical recorded receipts are not invented quarantine approvals. Follow the
+pharmacist receiving/disposition procedure. See the
+[owner/pharmacist local walkthrough](phase4/BATCH7_UAT_WALKTHROUGH.md).
+
+## Batch 5 local reports and unavailable statutory checkout
+
+Owner/Admin can open Reports, choose transaction history, sales by current
+category, slow-moving products or return decisions, set the Manila date range
+and press Apply / refresh. Slow-moving means units sold at or below the selected
+maximum, including zero sales; it does not infer expiry, profit or stock status.
+
+Excel and PDF buttons export all rows for the applied filters, including rows
+outside the visible page, with a 10,000-row limit. Narrow the date range or
+filters if the limit is exceeded. Financial amounts are exact PHP decimal text
+in Excel; no beneficiary name/ID is exported. Manager report permissions are
+unchanged and export buttons are Admin-only. Current categories may differ from
+historical classifications. Return decisions/received quantities are separate
+from cash payments; no refund, credit or revenue reversal is implied.
+
+Senior/PWD type, beneficiary name and ID fields remain disabled and unavailable.
+Do not collect customer identity through this preparation panel. Pharmacy tax,
+eligibility, documentary and invoice validation must finish before discounted
+checkout can be activated. Regular cash checkout continues normally.
+
+## Batch 3 controlled workflows (local implementation; production unavailable)
+
+Returns and Adjustments appear only when the server explicitly enables the
+workflows and verifies the required schema. Otherwise they remain unavailable.
+No production migration or activation has been performed.
+
+- **Adjustments:** identify the original batch, enter a signed quantity change
+  and nonblank reason, then submit a pending request. The server records your
+  identity. Use Stock-In for supplier deliveries. A different Manager/Admin
+  approves or rejects; only approval posts inventory, atomically and once.
+- **Returns:** find the actual receipt, choose the original sold item/batch and
+  enter quantity/reason. Pending requests do not reserve quantities; acceptance
+  rechecks cumulative approved returns. A different Manager/Admin decides. An
+  Employee sees their own requests; management can inspect all.
+- After acceptance, confirm the full physical receipt into **quarantine**.
+  This does not restore sellable stock or issue cash. Partial physical receipt
+  is unsupported. Managers/Admins request destroy/supplier-return/restock
+  disposition; a different reviewer decides. Approved dispositions consume
+  quarantine units once.
+- Restocking has a separate availability gate. Its reviewer must hold current
+  verified pharmacist authorization, be different from both the disposition
+  requester and original return initiator, explicitly verify suitability and
+  record an assessment. Expired/expiring-today batches cannot be restocked.
+- **Approvals:** Purchase Orders and Stock-In retain their existing permissions.
+  Available Adjustments, Returns and Dispositions have pending/action views and
+  approved/rejected history. Your own new requests have no approve/reject action.
+  Ordinary cash sales and valid statutory sales are not approval requests.
+- If a request response is uncertain, retain/retry its saved reference or check
+  the recorded outcome. Saved requests persist in this browser tab's session
+  storage by user and workflow. Do not create replacement requests blindly.
+- Reports retain reconciled original cash sales for pending, rejected and
+  accepted returns. No refund, credit, exchange or revenue reversal is implied.
+- Senior/PWD name/ID fields are preparation only and disabled. Do not collect
+  beneficiary details there. Statutory checkout remains unavailable until the
+  branch's VAT, medicine evidence, documentary and invoice inputs are validated.
+
+See [Batch 3 implementation and validation](phase4/BATCH3_RESULTS.md) for API,
+schema gates, exact tests and remaining activation requirements. Earlier Batch 1
+statements that returns/adjustments are design-only describe that earlier batch.
+
+## Development batch 1 update — 2026-11-21
+
+Normal completed, reconciled cash sales need no manual approval. Report review
+counts refer only to optional historical review metadata. Discounts and return
+financial treatment remain unchanged and unavailable for new workflows.
+
+Review the POS total before submitting. A price, identity, business-date or FEFO
+allocation change closes the unused reference and requires **Review total**
+again. An uncertain checkout must still be recovered/resolved as the original
+cashier; an already paid receipt remains recoverable after repricing.
+
+**Alerts** now opens a combined read-only center: Low stock, Upcoming expiry,
+Expires today and Expired. Upcoming expiry ends three calendar months after the
+Asia/Manila business date, with month-end clamping. Today/expired stock remains
+unsellable. Recorded low-stock totals still include expired batches.
+
+Admins use **Reorder Thresholds** to edit each product's existing reorder level.
+Blank explicitly means unset, and zero is valid; no critical-stock formula exists.
+Managers/Admins use **Approvals** for existing Purchase Orders and Stock-In,
+including pending/approved filters and actual document details. Current
+self-approval permissions remain; rejection/returns/adjustments are design only.
+
+See [batch 1 design and compatibility plan](phase4/DEVELOPMENT_BATCH1_DESIGN.md).
+Older sections below are historical where they describe a 30-day expiry window,
+missing consolidated views or mandatory normal-sale review.
+
 Academic submission edition, 2026-11-20. Covers the implemented React/Express interface. This is not approval for live pharmacy use.
 
 **Current verification boundary:** after finalization, the owner explicitly authorized one Admin and one Employee in existing Neon. Both now have verified actual local login/dashboard/role access (18 HTTP checks). Business records remain empty, so no receiving, sale or populated report walkthrough is claimed. Earlier finalization tests used fixtures/read-only queries. No screenshots are fabricated; actual browser screenshots and user acceptance remain outstanding. See [account setup record](phase4/ACADEMIC_ACCOUNT_SETUP.md) for private credential access.

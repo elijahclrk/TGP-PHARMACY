@@ -1,5 +1,48 @@
 # Existing-architecture deployment configuration
 
+## Batch 8 handoff — local only, 2026-11-22
+
+[Batch 8 instructions](phase4/BATCH8_DEMO_HANDOFF.md) provide guarded local
+verify/start/reset, compiled-frontend preview and evidence preservation. The
+local API remains a test-only development configuration. This does not verify
+production HTTPS, cookies, Linux containers or deployment. Docker runtime is
+still blocked by unavailable Docker; 010 remains unapplied. Follow the unchanged
+[backup/migration/restore/activation gates](phase4/RELEASE_CHECKLIST.md) before any
+separately authorized live release. No production connection was performed.
+
+## Batch 7 current packaging status — 2026-11-21
+
+Dockerfile now copies only canonical workflow SQL 007/008 into the runtime's
+expected path; narrowly ordered .dockerignore exceptions preserve context secret
+exclusions. No migration execution occurs at startup. Copied runtime gate checks
+passed against isolated PostgreSQL, including missing/stale-resource refusal.
+Docker is unavailable: **Linux image build/runtime remains BLOCKED**, not passed.
+The earlier missing-resource statement below is historical and corrected.
+
+See [Batch 7 results](phase4/BATCH7_RESULTS.md) and
+[release gates](phase4/RELEASE_CHECKLIST.md). A future container QA target/network
+and certificate identity must be independently verified; do not repoint to Neon,
+disable TLS or assume host loopback is reachable inside an ordinary container.
+No image was built, pushed or deployed. Production feature flags remain unchanged.
+
+## Batch 6 release gates — 2026-11-21
+
+**Do not deploy or migrate from historical instructions below.** Current
+[release checklist](phase4/RELEASE_CHECKLIST.md) and
+[QA/blocker report](phase4/BATCH6_QA_RESULTS.md) supersede readiness claims.
+No production connection/deployment occurred; remote data/flags were not inspected.
+
+Release-blocking packaging finding: workflow schemaReady reads canonical 007/008
+resources under server/database; Docker copies only server/src and .dockerignore
+excludes server/database. Resolve/test packaged compatibility resources before
+workflow activation; never weaken the schema gate. PDF font/license under
+server/src is included by the current src copy.
+
+Preserve applied 001/002/004. Draft 003/007/008/009 passed isolated tests only.
+Populated-target runner, backup/restore rehearsal, host HTTPS/proxy verification
+and separate migration/activation approval remain required. Historical empty
+account/data claims below are not fresh production checks.
+
 Prepared for academic submission, 2026-11-20. **No deployment, cloud resource, database, account or data was created.** No provider/domain is selected by this document. The existing React + Express + Neon architecture is retained: one long-running Express process serves both `client/dist` and relative `/api` requests on one HTTPS origin. No additional service, schema, migration or alternate auth architecture is introduced.
 
 ## Configuration supplied

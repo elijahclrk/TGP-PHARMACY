@@ -26,5 +26,7 @@ CREATE INDEX sale_returns_original_item_idx
   ON sale_returns (sale_id, sale_item_id);
 
 -- Existing sale_id FK and all primary keys remain unchanged.
--- Cumulative return limits and approval-once posting require locked transactions.
+-- 008 adds lifecycle/approved-quantity guards; 003 alone must never activate
+-- returns. The composite FK identifies the sold batch through sale_items.
+-- Lock/write cutover required: an old return writer cannot supply this linkage.
 COMMIT;

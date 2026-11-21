@@ -1,5 +1,38 @@
 # Finalization bug and limitation register
 
+## Batch 8 harness corrections — 2026-11-22
+
+The interrupted run exposed Fetch restricted-port failures in local POS tests.
+An initial port-0 retry could repeatedly receive the same unsuitable port.
+The corrected helper explicitly requests high loopback ports, retries collisions
+with a bound, and preserves browser/application security. Six focused launcher/
+allocator tests and the final full isolated run (189 entries) pass.
+The initial compiled-demo build inherited server development mode; the launcher
+now scopes production NODE_ENV around frontend build/preview, restores it, and
+checks emitted React assets before accepting production-bundle evidence.
+See [Batch 8 results](phase4/BATCH8_RESULTS.md). Windows connection-aborted error
+10053 is an interruption reported by the owner; no unsupported network root-cause
+or application fix is claimed. Docker, human UAT, statutory/fiscal validation and
+production migration/restore gates remain open.
+
+## Batch 7 corrections — 2026-11-21
+
+[BATCH7_RESULTS.md](phase4/BATCH7_RESULTS.md) supersedes prior missing canonical
+resource, within-category ranking and adjustment-picker findings. Two limited
+browser-local Admin reminder preferences and expiry-only inventory measures are
+implemented. Docker execution, durable settings, statutory/fiscal completion,
+production migration/restore readiness and actual human acceptance remain open.
+
+## Current register — Batch 6, 2026-11-21
+
+[Current QA](phase4/BATCH6_QA_RESULTS.md) records release blockers B01–B10 and
+noncritical gaps. Key issues: disabled statutory posting, Docker's missing
+canonical workflow resources, populated-target migration/restore readiness,
+partial notification/category/receipt requirements and pending human UAT.
+Current results: 113 frontend, 178 backend entries, 15 Chrome groups passed.
+No production connection or application implementation change occurred.
+Historical entries below are superseded where current evidence differs.
+
 Recorded 2026-11-20. No invented reporter names, sign-offs, ticket history or successful live retests are claimed. Fixed means the stated automated checks passed; outstanding evidence remains explicit.
 
 | ID | Severity / scope | Reproduction / finding | Resolution and actual retest | Status |

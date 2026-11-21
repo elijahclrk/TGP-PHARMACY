@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import { randomBytes } from 'node:crypto';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -15,7 +15,7 @@ test('production cookies are Secure and login limiter/CSRF validation enforce bo
     audit: async () => {}, transaction: async work => work({}) };
   const app = express(); app.use(express.json()); app.use(cookieParser());
   app.use('/api/auth', createAuthRouter({ config, repository, loginLimit: 2 }));
-  const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const server = await listenForFetch(app);
   const url = 'http://127.0.0.1:' + server.address().port;
   try {
     const post = (body, headers = {}) => fetch(url + '/api/auth/login', { method: 'POST',

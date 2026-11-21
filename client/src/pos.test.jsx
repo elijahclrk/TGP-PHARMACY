@@ -11,7 +11,7 @@ import { clearCheckout } from './checkout-recovery'
 vi.mock('./auth/api',()=>({ requestJson:vi.fn() }))
 afterEach(()=>{cleanup();localStorage.clear();vi.resetAllMocks()})
 const product={ product_id:1,name:'Test medicine',generic_name:'Generic',unit_price:'1.01',available:'5' }
-const quote={items:[{...product,quantity:1,line_total:'1.01'}],total:'1.01'}
+const quote={items:[{...product,quantity:1,line_total:'1.01'}],total:'1.01',quote_token:'server-signed-test-quote'}
 const receipt={sale_id:1,receipt_no:'POS-test',username:'cashier',sale_date:'2026-11-20T01:00:00Z',total_amount:'1.01',items:[{sale_item_id:1,product_name:'Test medicine',batch_no:'B1',expiry_date:'2028-01-01',quantity:1,unit_price:'1.01',line_total:'1.01'}],payments:[{amount_paid:'2.00',change_due:'0.99'}]}
 function mount(role='employee') {render(<MemoryRouter><AuthContext.Provider value={{user:{user_id:3,role,full_name:'Cashier'},logout:vi.fn()}}><Pos /></AuthContext.Provider></MemoryRouter>)}
 function mockApi(checkout) {requestJson.mockImplementation(async(path,options)=>path==='/pos/checkout' ? checkout(options) : path==='/pos/quote' ? {data:quote} : {data:[product],total:1,page:1,limit:20})}
@@ -29,6 +29,7 @@ test.each(['employee','manager','admin'])('%s can check out with server quote an
   expect(screen.getByText(/Change: PHP 0.99/)).toBeTruthy()
   const body=JSON.parse(requestJson.mock.calls.find(([path])=>path==='/pos/checkout')[1].body)
   expect(body.items).toEqual([{product_id:1,quantity:1}]);expect(body.amount_paid).toBe('2.00')
+  expect(body.quote_token).toBe(quote.quote_token)
   expect(body).not.toHaveProperty('total_amount');expect(body).not.toHaveProperty('discount_id');expect(body.request_id).toMatch(/^[a-f0-9-]{36}$/)
 })
 
@@ -139,4 +140,26 @@ test('clearing a resolved checkout cannot remove another saved reference',()=>{
   localStorage.setItem('tgp.checkout.v1.3',JSON.stringify(other))
   expect(()=>clearCheckout(3,crypto.randomUUID())).toThrow('Another saved checkout')
   expect(JSON.parse(localStorage.getItem('tgp.checkout.v1.3'))).toEqual(other)
+})
+
+test('price-change closure requires an explicit fresh quote and sends its new token', async () => {
+  let checkouts=0, reviews=0
+  requestJson.mockImplementation(async path => {
+    if (path==='/pos/quote') return {data:{...quote,quote_token:++reviews===1?'old-review':'fresh-review'}}
+    if (path==='/pos/checkout') {
+      if (++checkouts===1) throw Object.assign(new Error('Quote changed'),{status:409,checkoutState:'closed'})
+      return {data:{receipt,replayed:false}}
+    }
+    return {data:[product],total:1,page:1,limit:20}
+  })
+  const user=userEvent.setup();mount();await ready(user)
+  await user.click(screen.getByRole('button',{name:'Complete cash sale'}))
+  await screen.findByText(/closed without a sale/)
+  expect(reviews).toBe(1);expect(screen.queryByRole('button',{name:'Complete cash sale'})).toBeNull()
+  await user.click(screen.getByRole('button',{name:'Review total'}))
+  await user.click(await screen.findByRole('button',{name:'Complete cash sale'}))
+  await screen.findByRole('heading',{name:'Transaction complete'})
+  const sent=requestJson.mock.calls.filter(([path])=>path==='/pos/checkout').map(([,o])=>JSON.parse(o.body))
+  expect(sent.map(body=>body.quote_token)).toEqual(['old-review','fresh-review'])
+  expect(sent[0].request_id).not.toBe(sent[1].request_id)
 })

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash,randomUUID} from 'node:crypto';
-import {getPool,closePool} from '../src/config/database.js';
+import {getPool,closePool} from '../test/support/disposable-database.js';
 const schema='tgp_test_'+randomUUID().replaceAll('-','');
 const files=['001_phase3_baseline.sql','proposed/002_supported_integrity.sql','proposed/003_return_sale_item_link.sql','proposed/004_lookup_indexes.sql','proposed/deferred/005_complete_records.sql'];
 const raw=await Promise.all(files.map(f=>readFile(new URL('./migrations/'+f,import.meta.url),'utf8')));

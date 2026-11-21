@@ -1,3 +1,40 @@
+# Batch 2 preparation safety update - 2026-11-21
+
+Subsequent owner-authorized local verification is complete:
+[LOCAL_POSTGRES_TEST_RESULTS.md](../../docs/phase4/LOCAL_POSTGRES_TEST_RESULTS.md).
+PostgreSQL 17.12 on loopback with verified TLS passed the corrected proposal and
+workflow integration tests. No production migration or activation occurred.
+The historical skipped-test statements below describe the earlier preparation.
+
+Current proposals, transaction contracts, exact changed-file list and activation
+gates: [BATCH2_PREPARATION.md](../../docs/phase4/BATCH2_PREPARATION.md).
+003/007/008/009 remain **unapplied**. 001/002/004 bytes are preserved.
+No instructions below authorize another production migration or test run.
+
+All six existing mutation-test harnesses and `validate-proposals.mjs` now use
+`test/support/disposable-database.js`, with no production pool fallback. The
+new workflow migration suite uses the same guard. A schema on production Neon
+is NOT isolation. Before any connection, the guard requires an explicitly
+authorized `TEST_DATABASE_URL`, `TEST_DATABASE_DISPOSABLE=true`, exact normalized
+`TEST_DATABASE_EXPECTED_HOST`, `TEST_DATABASE_EXPECTED_NAME`, and a random
+`TEST_DATABASE_ATTESTATION` token of 24–128 alphanumeric/underscore/hyphen chars.
+It rejects the production host OR database name, pooled-host aliases, and URL
+redirection options. It then verifies `current_database()` and the independently
+provisioned DB-level `tgp.disposable_test_token` in a READ ONLY transaction.
+This code never provisions a database or writes that marker. All suite opt-ins
+remain off. The old `IMAGE_TEST_DATABASE_*` settings no longer authorize writes.
+
+The older suites also expect baseline 001/002/004 and their checksum history in
+the disposable database's public schema. That prerequisite must be explicitly
+provisioned under separate authorization; it is never copied automatically.
+`validate-proposals.mjs` covers its historical 001–005 combination only. The
+new opt-in `workflow-migrations.integration.test.js` covers the corrected drafts
+inside a disposable rollback-only schema. Neither was run against Neon.
+
+The following deployment records are historical. In particular, the old
+initialization runner is not suitable for future populated-database rollouts,
+and its `--check` mode performs DDL and locks, so is not a read-only audit tool.
+
 # Deployment status - 2026-11-20
 
 001, 002_supported_integrity.sql and 004_lookup_indexes.sql are applied and

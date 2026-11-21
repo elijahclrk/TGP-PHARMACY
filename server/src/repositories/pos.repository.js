@@ -1,4 +1,5 @@
 import { insertWithId } from './auth.repository.js';
+import { quoteFingerprint } from '../services/pos-quotes.js';
 const today = "(clock_timestamp() AT TIME ZONE 'Asia/Manila')::date";
 const fail = (status, details = {}) => { throw Object.assign(new Error('Checkout cannot be completed'), { status, ...details }); };
 const closureAction = id => 'checkout.closed:' + id.toLowerCase();
@@ -7,12 +8,20 @@ export function createPosRepository(poolProvider) {
   const closures = async (client, requestId) => (await client.query(
     "SELECT user_id FROM activity_logs WHERE module='POS_checkout' AND action=$1", [closureAction(requestId)])).rows;
   async function receipt(id, actor, client = poolProvider()) {
-    const sale = (await client.query(`SELECT s.sale_id,s.user_id,u.username,s.receipt_no,s.sale_date,s.total_amount::text,s.approved_by
+    // Phase 3 stores a UTC timestamp without a zone. Return an explicit instant;
+    // otherwise pg interprets it in the Node host's local timezone (e.g. Manila).
+    const sale = (await client.query(`SELECT s.sale_id,s.user_id,u.username,s.receipt_no,s.sale_date AT TIME ZONE 'UTC' AS sale_date,s.total_amount::text,s.approved_by,
+      CASE WHEN to_jsonb(s)->>'financial_snapshot_version' IN ('1','2') THEN jsonb_build_object(
+       'version',to_jsonb(s)->>'financial_snapshot_version','benefit',to_jsonb(s)->>'benefit_type',
+       'gross',to_jsonb(s)->>'gross_amount','vatRemoved',to_jsonb(s)->>'vat_removed_amount','discount',to_jsonb(s)->>'discount_amount',
+       'vatable',to_jsonb(s)->>'vatable_amount','exempt',to_jsonb(s)->>'vat_exempt_amount','vat',to_jsonb(s)->>'vat_amount','nonVat',to_jsonb(s)->>'non_vat_amount') END AS financial
       FROM sales s JOIN users u ON u.user_id=s.user_id WHERE s.sale_id=$1 AND ($2::boolean OR s.user_id=$3)`,
     [id, actor.role !== 'employee', actor.user_id])).rows[0];
     if (!sale) fail(404);
-    sale.items = (await client.query(`SELECT i.sale_item_id,b.product_id,p.name AS product_name,b.batch_id,b.batch_no,
-      to_char(b.expiry_date,'YYYY-MM-DD') AS expiry_date,i.quantity,i.unit_price::text,(i.unit_price*i.quantity)::text AS line_total
+    sale.items = (await client.query(`SELECT i.sale_item_id,b.product_id,coalesce(to_jsonb(i)->>'product_name_snapshot',p.name) AS product_name,b.batch_id,coalesce(to_jsonb(i)->>'batch_no_snapshot',b.batch_no) AS batch_no,
+      coalesce(to_jsonb(i)->>'expiry_date_snapshot',to_char(b.expiry_date,'YYYY-MM-DD')) AS expiry_date,i.quantity,i.unit_price::text,
+      coalesce(to_jsonb(i)->>'net_line_amount',(i.unit_price*i.quantity)::text) AS line_total,
+      to_jsonb(i)->>'discount_line_amount' AS discount,to_jsonb(i)->>'vat_removed_line_amount' AS vat_removed,to_jsonb(i)->>'vat_line_amount' AS vat
       FROM sale_items i JOIN batches b ON b.batch_id=i.batch_id JOIN products p ON p.product_id=b.product_id
       WHERE i.sale_id=$1 ORDER BY b.product_id,b.expiry_date,b.batch_id`, [id])).rows;
     sale.payments = (await client.query('SELECT method,amount_paid::text,change_due::text FROM payments WHERE sale_id=$1 ORDER BY payment_id', [id])).rows;
@@ -38,19 +47,26 @@ export function createPosRepository(poolProvider) {
   async function allocate(client, lines) {
     const allocations = [];
     for (const line of lines) {
-      const batches = (await client.query(`SELECT batch_id,qty_on_hand FROM batches
+      const batches = (await client.query(`SELECT batch_id,qty_on_hand,batch_no,to_char(expiry_date,'YYYY-MM-DD') AS expiry_date FROM batches
         WHERE product_id=$1 AND qty_on_hand>0 AND expiry_date>${today}
         ORDER BY expiry_date,batch_id FOR UPDATE`, [line.product_id])).rows;
       let remaining = line.quantity;
       for (const batch of batches) {
         if (!remaining) break;
         const quantity = Math.min(remaining, batch.qty_on_hand);
-        allocations.push({ batch_id: batch.batch_id, quantity, unit_price: line.unit_price });
+        allocations.push({ product_id: line.product_id, batch_id: batch.batch_id, batch_no: batch.batch_no,
+          expiry_date: batch.expiry_date, quantity, unit_price: line.unit_price });
         remaining -= quantity;
       }
       if (remaining) fail(409, { correctable: true });
     }
     return allocations;
+  }
+  async function reviewedSnapshot(client, data) {
+    const priced = await price(client, data.items);
+    const allocations = await allocate(client, priced.items);
+    const { business_date } = (await client.query(`SELECT to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS business_date`)).rows[0];
+    return { priced, allocations, business_date, fingerprint: quoteFingerprint({ business_date, ...priced, allocations }) };
   }
   return {
     receipt,
@@ -89,11 +105,10 @@ export function createPosRepository(poolProvider) {
       return { ...result.rows[0], page: query.page, limit: query.limit };
     },
     async quote(client, data) {
-      const priced = await price(client, data.items);
-      await allocate(client, priced.items);
-      return priced;
+      const snapshot = await reviewedSnapshot(client, data);
+      return { ...snapshot.priced, business_date: snapshot.business_date, fingerprint: snapshot.fingerprint };
     },
-    async checkout(client, actor, data, audit) {
+    async checkout(client, actor, data, audit, expectedQuote) {
       const reference = 'POS-' + data.request_id.toLowerCase();
       // Existing transaction advisory lock serializes lookup/insert even though
       // the approved schema has no unique receipt_no constraint.
@@ -101,6 +116,7 @@ export function createPosRepository(poolProvider) {
       if (existing.length) {
         if (existing.length !== 1 || existing[0].user_id !== actor.user_id) fail(409);
         const stored = await receipt(existing[0].sale_id, actor, client);
+        if(stored.financial?.version==='2')fail(409);
         const quantities = (await client.query(`SELECT b.product_id,sum(i.quantity)::text AS quantity FROM sale_items i
           JOIN batches b ON b.batch_id=i.batch_id WHERE sale_id=$1 GROUP BY b.product_id ORDER BY b.product_id`, [stored.sale_id])).rows;
         const expected = [...data.items].sort((a,b) => a.product_id-b.product_id).map(item => ({ product_id: item.product_id, quantity: String(item.quantity) }));
@@ -110,8 +126,11 @@ export function createPosRepository(poolProvider) {
       }
       const closed = await closures(client, data.request_id);
       if (closed.length) fail(409, { checkoutClosed: closed.every(row => row.user_id === actor.user_id) });
-      const priced = await price(client, data.items);
-      const allocations = await allocate(client, priced.items);
+      // Replay above deliberately precedes quote checks: an already committed
+      // receipt remains recoverable after repricing, midnight, or an upgrade.
+      if (!expectedQuote) fail(409, { correctable: true });
+      const { priced, allocations, fingerprint } = await reviewedSnapshot(client, data);
+      if (fingerprint !== expectedQuote) fail(409, { correctable: true });
       const cash = (await client.query('SELECT $1::numeric >= $2::numeric AS enough, round($1::numeric,2)::text AS paid, ($1::numeric-$2::numeric)::text AS change', [data.amount_paid, priced.total])).rows[0];
       if (!cash.enough) fail(422, { correctable: true });
       const sale = await insertWithId(client, `INSERT INTO sales(sale_id,user_id,receipt_no,sale_date,total_amount,approved_by,discount_id,senior_pwd_id,vat_exempt)

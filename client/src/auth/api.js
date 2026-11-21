@@ -17,3 +17,15 @@ export async function requestJson(path, options = {}) {
 }
 
 export const api = (path, options) => requestJson(`/auth${path}`, options)
+
+export async function downloadReport(path,filename){
+  const response=await fetch(`/api${path}`,{credentials:'same-origin',headers:{'X-TGP-Request':'1'}})
+  if(!response.ok){
+    if(response.status===401)window.dispatchEvent(new Event('tgp:unauthorized'))
+    const body=await response.json().catch(()=>({}))
+    throw new Error(body.message||'Report export failed. Please try again.')
+  }
+  const url=URL.createObjectURL(await response.blob())
+  const link=document.createElement('a');link.href=url;link.download=filename
+  document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
+}

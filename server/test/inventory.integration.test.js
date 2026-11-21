@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { getPool, closePool } from '../src/config/database.js';
+import { getPool, closePool } from './support/disposable-database.js';
 import { createAuthRepository } from '../src/repositories/auth.repository.js';
 import { createInventoryRepository } from '../src/repositories/inventory.repository.js';
 import { createSessions } from '../src/services/sessions.js';
@@ -59,7 +59,7 @@ test('isolated PostgreSQL product and inventory HTTP integration', { skip: proce
     const app = express(); app.use(express.json()); app.use(cookieParser());
     app.use(createInventoryRouter({ config, sessions, authRepository, repository: createInventoryRepository(provider) }));
     app.use(errorHandler);
-    server = app.listen(0, '127.0.0.1'); await once(server, 'listening'); url = 'http://127.0.0.1:' + server.address().port;
+    server = await listenForFetch(app); url = 'http://127.0.0.1:' + server.address().port;
 
     await t.test('authentication, role restrictions and CSRF remain enforced', async () => {
       assert.equal((await request('/products', { role: null })).status, 401);
@@ -136,12 +136,12 @@ test('isolated PostgreSQL product and inventory HTTP integration', { skip: proce
     await t.test('near-expiry window boundaries and expired/zero/unknown exclusions', async () => {
       await client.query('UPDATE batches SET qty_on_hand=0');
       for (const [id, days, qty] of [[201,-1,1],[202,0,1],[203,30,1],[204,31,1],[205,1,0]]) await client.query("INSERT INTO batches(batch_id,product_id,batch_no,expiry_date,qty_on_hand,cost_price,selling_price) VALUES($1,$2,$3,(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date+$4::int,$5,1,2)", [id, productId, 'expiry-fixture-' + id, days, qty]);
-      const near = await request('/inventory/near-expiry?days=30', { role: 'employee' });
-      assert.equal(near.status, 200); assert.deepEqual(near.body.data.map(r=>r.batch_id), [202,203]);
+      const near = await request('/inventory/near-expiry', { role: 'employee' });
+      assert.equal(near.status, 200); assert.deepEqual(near.body.data.map(r=>r.batch_id), [203,204]);
       assert(near.body.data.every(r=>!Object.hasOwn(r,'cost_price')));
-      assert.equal((await request('/inventory/near-expiry?days=0')).body.total, 1);
+      assert.equal((await request('/inventory/batches?status=expiring_today')).body.total, 1);
       assert.equal((await request('/inventory/batches?status=expired')).body.data[0].batch_id, 201);
-      assert.equal((await request('/inventory/near-expiry')).status, 400);
+      assert.equal((await request('/inventory/near-expiry')).status, 200);
       assert.equal((await request('/inventory/near-expiry?days=366')).status, 400);
     });
     await t.test('historical batch cost guard and audited transactional rollback', async () => {
@@ -156,6 +156,17 @@ test('isolated PostgreSQL product and inventory HTTP integration', { skip: proce
       const actions = (await client.query('SELECT action,module,logged_at FROM activity_logs')).rows;
       for (const prefix of ['product.created:', 'product.updated:', 'batch.created_zero_stock:', 'batch.metadata_updated:']) assert(actions.some(row => row.action.startsWith(prefix)));
       assert(actions.every(row => ['products','inventory'].includes(row.module) && row.logged_at));
+    });
+    await t.test('recorded expired/today receipts are separate from within-date stock and unknown expiry never implies eligibility',async()=>{
+      await client.query("INSERT INTO products(product_id,name,unit_price) VALUES(9000,'Expiry-only fixture',1)");
+      await client.query(`INSERT INTO batches(batch_id,product_id,batch_no,expiry_date,qty_on_hand,cost_price) VALUES
+        (9001,9000,'future',(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date+1,7,1),
+        (9002,9000,'today',(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date,3,1),
+        (9003,9000,'expired',(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date-1,4,1)`);
+      let row=(await request('/products?q=Expiry-only')).body.data[0];
+      assert.equal(row.qty_on_hand,'14');assert.equal(row.within_date_qty,'7');assert.equal(row.expired_or_today_qty,'7');
+      await client.query("INSERT INTO batches(batch_id,product_id,batch_no,expiry_date,qty_on_hand,cost_price) VALUES(9004,9000,'unknown',NULL,5,1)");
+      row=(await request('/products?q=Expiry-only')).body.data[0];assert.equal(row.qty_on_hand,'19');assert.equal(row.within_date_qty,null);
     });
     await t.test('deactivated accounts lose access immediately', async () => {
       await client.query("UPDATE users SET status='inactive' WHERE user_id=2");

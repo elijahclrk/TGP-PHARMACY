@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import express from 'express';
 import { serveFrontend } from '../src/middleware/frontend.js';
 
@@ -17,7 +17,7 @@ test('production static hosting preserves API boundaries, deep links, cache rule
   await writeFile(join(directory,'.env'),'synthetic private fixture');
   const app=express();app.get('/api/health',(_req,res)=>res.json({success:true}));
   serveFrontend(app,directory);app.use((_req,res)=>res.status(404).json({success:false}));
-  const server=app.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const server=await listenForFetch(app);t.after(()=>new Promise(resolve=>server.close(resolve)));
   const url='http://127.0.0.1:'+server.address().port;
   for(const path of ['/','/login','/products','/stock-ins','/pos','/reports']) {
     const response=await fetch(url+path);assert.equal(response.status,200);assert.match(await response.text(),/static fixture/);assert.equal(response.headers.get('cache-control'),'no-store');

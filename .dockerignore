@@ -27,4 +27,14 @@ docs
 server/demo
 server/test
 server/database
+!server/database/
+server/database/*
+!server/database/migrations/
+server/database/migrations/*
+!server/database/migrations/proposed/
+server/database/migrations/proposed/*
+!server/database/migrations/proposed/batch1/
+server/database/migrations/proposed/batch1/*
+!server/database/migrations/proposed/batch1/007_decision_workflows.sql
+!server/database/migrations/proposed/batch1/008_return_dispositions.sql
 client/src/**/*.test.*

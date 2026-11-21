@@ -1,5 +1,18 @@
 # Point of Sale and FEFO — provisional MVP
 
+## Development batch 1 update — 2026-11-21
+
+New checkouts require the server-signed quote_token from an explicit quote review.
+Prices, product identity, Manila business date and FEFO allocation must match.
+Changed quotes close unused references durably and require a fresh review.
+Already paid references still replay before quote checks, including old tokenless
+requests; unresolved requests retain the existing recovery protocol.
+Normal completed cash sales require no manual approval; approved_by remains
+optional historical review metadata. Discounts remain disabled.
+See [current batch contract](../docs/phase4/DEVELOPMENT_BATCH1_DESIGN.md).
+Older validation counts and API examples below are historical.
+
+
 ## Finalization: rejected-checkout correction
 
 Current local validation (2026-11-20): **44 backend tests passed, 0 failed, 6 PostgreSQL suites skipped; 47 frontend tests passed; lint/build passed.** Seven new route/repository protocol tests use DB doubles, and six frontend/API-helper tests cover the correction/storage behavior. The added PostgreSQL closure scenario was not run: no approved disposable resource is available and finalization forbids creating a database or mutating existing Neon. Earlier results below are historical, not a current integration pass.

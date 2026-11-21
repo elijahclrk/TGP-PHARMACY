@@ -1,5 +1,42 @@
 ﻿# Approved wireframe alignment review
 
+## Batch 8 compiled frontend verification — 2026-11-22
+
+Current compiled UI evidence: 17 Chrome groups, 38 screenshots, receipt/modal
+reopen/close, Manila timestamp assertions, role menus and real report downloads.
+See [Batch 8 results/gallery location](BATCH8_RESULTS.md). The nine-reference
+review and differences below remain applicable; no business UI was rewritten.
+The shell, red/neutral hierarchy, navigation, report/alert tables and receipt
+dialog follow the reference direction. Remaining differences include inline
+forms, signed original-batch adjustments, extra controlled quarantine/disposition
+steps, limited browser-local reminder checkboxes and unavailable statutory/fiscal
+actions. Wireframe noncash payment and critical-stock examples do not override
+the approved cash-only/per-product-threshold scope. No pixel-match or owner visual
+acceptance is claimed.
+
+## Batch 7 local gap corrections — 2026-11-21
+
+Searchable original-batch selection, explicit stock-quantity meanings,
+within-category best/slow unit rankings and limited browser-local Admin reminder
+preferences now work. Current evidence: 17 actual Chrome groups/38 screenshots.
+See [Batch 7 results](BATCH7_RESULTS.md) and the
+[unsigned walkthrough](BATCH7_UAT_WALKTHROUGH.md). Some forms remain inline and
+signed quantities are retained; durable/global settings, unsupported fields,
+statutory checkout and fiscal printing remain unavailable. No human visual
+acceptance or pixel-diff certification is claimed.
+
+## Batch 6 current qualitative review — 2026-11-21
+
+All nine clickable-reference images and Phase 2/3 diagrams, architecture and
+low-fidelity reference were inspected again. Current findings/owner-decision
+differences: [FINAL_REQUIREMENTS_MATRIX.md](FINAL_REQUIREMENTS_MATRIX.md).
+Actual Chrome: 15 groups, 32 screenshots, including audit/accounts, exports and
+logout/re-login. This is qualitative visual/behavioral QA, not pixel-diff or
+owner/pharmacist acceptance. Earlier unavailable-browser/missing-export claims
+are superseded by [Batch 6 evidence](BATCH6_QA_RESULTS.md).
+Notification preferences, full within-category best/slow rankings, fiscal print
+and some unsupported fields remain incomplete. Statutory checkout stays disabled.
+
 ## Current primary reference: detailed clickable designs
 
 Reviewed 2026-11-20 (Asia/Manila). **The new clickable designs override the earlier low-fidelity visual reference.** Historical reviews below are secondary. This is a source-image/code comparison, not browser or client visual acceptance.

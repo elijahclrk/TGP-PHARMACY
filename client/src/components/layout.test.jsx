@@ -19,16 +19,19 @@ test.each(['employee', 'manager', 'admin'])('%s sidebar follows existing permiss
   const navigation = within(screen.getByRole('navigation', { name: 'Workspace' }))
   expect(navigation.getByRole('link', { name: 'Dashboard' }).getAttribute('aria-current')).toBe('page')
   expect(navigation.getByRole('link', { name: 'POS / Sales' }).getAttribute('href')).toBe('/pos')
-  for (const name of ['Suppliers', 'Purchase orders', 'Stock-in', 'Sales Reports']) {
+  for (const name of ['Suppliers', 'Purchase orders', 'Stock-in', 'Sales Reports', 'Approvals']) {
     expect(Boolean(navigation.queryByRole('link', { name }))).toBe(role !== 'employee')
   }
-  for (const name of ['Returns', 'Adjustments', 'Approvals', 'Discount Rules', 'Notifications']) {
+  for (const name of ['Returns', 'Adjustments', 'Discount Rules']) {
     expect(navigation.queryByRole('link', { name })).toBeNull()
     expect(navigation.queryByRole('button', { name })).toBeNull()
   }
   expect(Boolean(navigation.queryByText('User accounts'))).toBe(role === 'admin')
   expect(Boolean(navigation.queryByRole('link', { name: 'User accounts' }))).toBe(role === 'admin')
   expect(Boolean(navigation.queryByRole('link', { name: 'Audit Logs' }))).toBe(role === 'admin')
+  expect(Boolean(navigation.queryByRole('link', { name: 'Reorder Thresholds' }))).toBe(role === 'admin')
+  expect(Boolean(navigation.queryByRole('link', { name: 'Notifications' }))).toBe(role === 'admin')
+  expect(navigation.getByRole('link', { name: 'Alerts' }).getAttribute('href')).toBe('/alerts')
 })
 test('navigation opens, closes with Escape and restores keyboard focus', async () => {
   mount(<Workspace>Content</Workspace>)
@@ -83,13 +86,13 @@ test('drawer dismisses on desktop resize without leaving the background inert or
     view.unmount()
   } finally { vi.unstubAllGlobals() }
 })
-test('alerts link applies the real expiry filter; batches link resets it and updates active navigation', async () => {
+test('inventory expiry links retain batch navigation while the combined alert center has its own route', async () => {
   requestJson.mockResolvedValue({ data: [], total: 0, limit: 20, page: 1 })
   mount(<Inventory />, 'employee', '/inventory?status=near_expiry')
   await waitFor(() => expect(requestJson.mock.calls.some(([path]) => path.includes('status=near_expiry'))).toBe(true))
   expect(screen.getByLabelText('Expiry filter').value).toBe('near_expiry')
-  expect(screen.getByRole('link', { name: 'Alerts' }).getAttribute('aria-current')).toBe('page')
-  expect(screen.getByRole('link', { name: 'Batches' }).getAttribute('aria-current')).toBeNull()
+  expect(screen.getByRole('link', { name: 'Alerts' }).getAttribute('aria-current')).toBeNull()
+  expect(screen.getByRole('link', { name: 'Batches' }).getAttribute('aria-current')).toBe('page')
   await userEvent.click(screen.getByRole('link', { name: 'Batches' }))
   await waitFor(() => expect(screen.getByLabelText('Expiry filter').value).toBe('all'))
   expect(screen.getByRole('link', { name: 'Batches' }).getAttribute('aria-current')).toBe('page')

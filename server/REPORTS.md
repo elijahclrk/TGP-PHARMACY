@@ -1,10 +1,64 @@
 # Dashboard and reports
 
+## Batch 7 current report additions — 2026-11-21
+
+Admin Best-selling by category and Slow-moving products use dense unit ranks
+within current category. Equal quantities tie; positive-unit products appear in
+best-selling, and zero-sale products are included in the explicitly bounded
+slow-moving view. Exact category/date filters and existing cash-sale cohort are
+shared by screen, XLSX and PDF. There are now eleven exportable report types.
+No return acceptance creates a financial reversal. Low-stock results also show
+recorded, within-date (expiry only), and expired/today quantities; the original
+recorded-stock reorder definition is unchanged.
+
+[Batch 7 results](../docs/phase4/BATCH7_RESULTS.md) gives current validation and
+remaining production gates; earlier ten-report statements below are historical.
+
+## Batch 5 local reporting and exports — 2026-11-21
+
+Admin report views now include transaction history, current-category sales,
+explicit unit-threshold slow-moving products, and separate return decisions and
+physical receipt quantities. All ten report types support Admin-only XLSX/PDF
+downloads through GET /api/reports/:kind/export?format=xlsx|pdf and validated
+report filters. Pagination/status overrides are refused; exports include all
+filtered rows up to 10,000 and fail above that limit. Currency stays exact
+decimal text, formulas are escaped, and beneficiary identifiers/free-text return
+reasons are omitted. PDFs embed the bundled OFL Noto Sans font.
+
+Original cash-sale reconciliation is unchanged. Return decisions do not imply
+refunds, credits, exchanges or revenue reversals. Legacy decisions remain
+unclassified. Unknown costs still withhold complete profit/valuation estimates.
+No new migration or statutory-discount activation is required for exports.
+
+See [Batch 5 results](../docs/phase4/BATCH5_RESULTS.md) for exact tests, isolation,
+browser artifacts, APIs and remaining pharmacy/accounting signoffs.
+
+## Batch 3 reporting integrity — 2026-11-21
+
+The presence of a return row no longer excludes its original sale. Pending,
+rejected and accepted returns preserve the original completed cash-sale
+recognition, product totals and gross-profit estimate. This is not a refund,
+credit, exchange or revenue reversal. Acceptance/quarantine/restocking are
+inventory decisions; no settlement ledger or financial adjustment is invented.
+Payment, line, cashier POS-audit reconciliation and discounted-sale exclusions
+remain enforced. `approved_by` is still optional historical review metadata.
+Exchange accounting and any future authorized cash settlement remain unresolved
+and must be designed separately. The earlier return-associated exclusion below
+is superseded by this explicit owner-approved Batch 3 rule.
+
+**Owner-confirmed batch 1 policy (2026-11-21):** normal completed cash sales
+require no manual approval. Recognition/reconciliation SQL is unchanged;
+`approved_by` and the compatible `reviewed`/`unreviewed` JSON names describe only
+optional historical review. UI wording reflects this decision. Discount and
+return financial treatment remain unchanged. Upcoming-expiry reads use three
+calendar months and no `days` override. Earlier provisional wording below is
+superseded. See [batch 1 design](../docs/phase4/DEVELOPMENT_BATCH1_DESIGN.md).
+
 ## Provisional recognition policy — pending client validation
 
 User-approved Option 1 recognizes successfully completed, fully paid regular POS sales regardless of `sales.approved_by`. NULL is shown as unreviewed, never approved. This is an explicit reporting-policy deviation from the original Phase 3 approved-only owner report notes; it changes no transaction or approval records. Existing POS workflow is untouched.
 
-Sales qualify when their POS `sale.paid` audit event matches the cashier, their single cash payment less change equals stored sale total, and valid sale-item quantities/prices reconcile exactly to that total. Payment and item aggregates are computed independently to avoid multiplying totals for multi-batch sales. Incomplete/unpaid/unreconciled records are excluded with a visible excluded-record count. This iteration supports the existing regular-price POS only: discounted/tax-exempt/return-associated records are excluded rather than applying unapproved accounting rules. Missing sale dates cannot be assigned to a period and are outside date-filtered coverage. No Senior/PWD calculations were implemented.
+Sales qualify when their POS `sale.paid` audit event matches the cashier, their single cash payment less change equals stored sale total, and valid sale-item quantities/prices reconcile exactly to that total. Payment and item aggregates are computed independently to avoid multiplying totals for multi-batch sales. Incomplete/unpaid/unreconciled records are excluded with a visible excluded-record count. This iteration recognizes regular-price POS sales regardless of return state; discounted/tax-exempt sales remain excluded pending statutory activation and versioned financial reporting. Missing sale dates cannot be assigned to a period and are outside date-filtered coverage. The prepared Senior/PWD calculator remains disconnected from checkout.
 
 ## Permissions and API
 

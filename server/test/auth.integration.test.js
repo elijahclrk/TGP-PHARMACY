@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { getPool, closePool } from '../src/config/database.js';
+import { getPool, closePool } from './support/disposable-database.js';
 import { createAuthRepository } from '../src/repositories/auth.repository.js';
 import { createAccount } from '../src/services/accounts.js';
 import { createSessions } from '../src/services/sessions.js';
@@ -74,7 +74,7 @@ test('PostgreSQL authentication integration', { skip: process.env.RUN_AUTH_DB_TE
     app.use(express.json()); app.use(cookieParser());
     app.use(createAuthRouter({ config, repository, sessions, loginLimit: 100 }));
     app.use(errorHandler);
-    server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+    server = await listenForFetch(app);
     url = 'http://127.0.0.1:' + server.address().port;
 
     await t.test('bootstrap creates exactly one admin with Argon2id and audit; repeat refuses', async () => {

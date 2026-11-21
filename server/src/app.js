@@ -13,6 +13,9 @@ import { createInventoryRepository } from './repositories/inventory.repository.j
 import { createInventoryRouter } from './routes/inventory.routes.js';
 import { createPurchasingRouter } from './routes/purchasing.routes.js';
 import { createPurchasingRepository } from './repositories/purchasing.repository.js';
+import {createWorkflowsRouter} from './routes/workflows.routes.js';
+import {createWorkflowsRepository} from './repositories/workflows.repository.js';
+import {createPreparedWorkflows} from './services/prepared-workflows.js';
 import { createPosRepository } from './repositories/pos.repository.js';
 import { createPosRouter } from './routes/pos.routes.js';
 import { createReportsRepository } from './repositories/reports.repository.js';
@@ -27,6 +30,8 @@ import apiRouter from './routes/index.js';
 import { notFound } from './middleware/not-found.js';
 import { errorHandler } from './middleware/error-handler.js';
 
+export function createApplication({benefits}={}) {
+if(benefits&&env.nodeEnv==='production')throw new Error('Synthetic benefit checkout cannot be activated in a production runtime.');
 const app = express();
 
 app.disable('x-powered-by');
@@ -43,8 +48,9 @@ const authRepository = createAuthRepository(getPool);
 app.use('/api/auth', createAuthRouter({ config, sessions, repository: authRepository }));
 app.use('/api/audit-logs', createAuditRouter({ config, sessions, authRepository, repository: createAuditRepository(getPool) }));
 app.use('/api', apiRouter);
+app.use('/api/workflows',createWorkflowsRouter({config,sessions,authRepository,repository:createWorkflowsRepository(getPool),service:createPreparedWorkflows(getPool),enabled:process.env.CONTROLLED_WORKFLOWS_ENABLED==='true',restockingEnabled:process.env.RETURN_RESTOCK_ENABLED==='true'}));
 app.use('/api/reports', createReportsRouter({ config,sessions,authRepository,repository:createReportsRepository(getPool),inventoryRepository:createInventoryRepository(getPool) }));
-app.use('/api/pos', createPosRouter({ config, sessions, authRepository, repository: createPosRepository(getPool) }));
+app.use('/api/pos', createPosRouter({ config, sessions, authRepository, repository: createPosRepository(getPool), benefits }));
 app.use('/api', createProductImagesRouter({ config, sessions, authRepository,
   repository: createProductImagesRepository(getPool), provider: createImageProvider() }));
 app.use('/api', createPurchasingRouter({ config, sessions, authRepository, repository: createPurchasingRepository(getPool) }));
@@ -53,4 +59,6 @@ if (env.nodeEnv === 'production') serveFrontend(app,fileURLToPath(new URL('../..
 app.use(notFound);
 app.use(errorHandler);
 
-export default app;
+return app;
+}
+export default createApplication();

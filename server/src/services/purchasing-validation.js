@@ -13,6 +13,7 @@ export const orderCreate = z.object({ supplier_id: id, items: z.array(poLine).mi
 export const receivingCreate = z.object({ supplier_id: id, delivery_ref: text, items: z.array(receivingLine).min(1).max(100) }).strict();
 export const approvalInput = z.object({}).strict();
 export const purchasingQuery = z.object({
+  status: z.enum(['all', 'pending', 'approved']).default('all'),
   q: z.string().trim().max(200).default(''),
   page: z.string().regex(/^[1-9]\d{0,5}$/).transform(Number).default(1),
   limit: z.string().regex(/^\d{1,3}$/).transform(Number).refine(n => n >= 1 && n <= 100).default(20),

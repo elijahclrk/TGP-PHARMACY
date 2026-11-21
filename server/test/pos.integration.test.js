@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { once } from 'node:events';
+import { listenForFetch } from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { getPool, closePool } from '../src/config/database.js';
+import { getPool, closePool } from './support/disposable-database.js';
 import { createAuthRepository } from '../src/repositories/auth.repository.js';
 import { createPosRepository } from '../src/repositories/pos.repository.js';
 import { createSessions } from '../src/services/sessions.js';
@@ -88,13 +88,16 @@ test('isolated PostgreSQL POS and FEFO checkout', { skip: process.env.RUN_POS_DB
     const auth = createAuthRepository(provider), repo = createPosRepository(provider);
     const app = express(); app.use(express.json()); app.use(cookieParser());
     app.use(createPosRouter({ config,sessions,authRepository:auth,repository:repo })); app.use(errorHandler);
-    server = app.listen(0,'127.0.0.1'); await once(server,'listening');
+    server = await listenForFetch(app);
     const request = async (path,{ role='employee',method='GET',body,origin=config.origin }={}) => {
       const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`,{ method,headers:{ 'Content-Type':'application/json',Origin:origin,'X-TGP-Request':'1',...(role ? { Cookie:cookies[role] } : {}) },...(body ? {body:JSON.stringify(body)} : {}) });
       return { status:response.status,body:await response.json() };
     };
     const checkout = (items,paid,extra={}) => ({ request_id:randomUUID(),items,amount_paid:paid,...extra });
-    const post = (body,role='employee') => request('/checkout',{ role,method:'POST',body });
+    const post = async (body,role='employee') => {
+      if (!Object.hasOwn(body,'quote_token')) body.quote_token=(await request('/quote',{role,method:'POST',body:{items:body.items}})).body.data?.quote_token;
+      return request('/checkout',{ role,method:'POST',body });
+    };
     const quantity = async id => (await db.query('SELECT qty_on_hand FROM batches WHERE batch_id=$1',[id])).rows[0].qty_on_hand;
     let saleId;
     await t.test('authentication, CSRF and all cashier roles; own-receipt access', async () => {
@@ -182,14 +185,14 @@ test('isolated PostgreSQL POS and FEFO checkout', { skip: process.env.RUN_POS_DB
       const freshSessions=createSessions(config),freshAuth=createAuthRepository(provider),freshRepo=createPosRepository(provider);
       const freshApp=express();freshApp.use(express.json());freshApp.use(cookieParser());
       freshApp.use(createPosRouter({config,sessions:freshSessions,authRepository:freshAuth,repository:freshRepo}));freshApp.use(errorHandler);
-      server=freshApp.listen(0,'127.0.0.1');await once(server,'listening');
+      server=await listenForFetch(freshApp);
       assert.equal((await request('/checkouts/'+body.request_id)).status,401);
       cookies.employee='tgp_session='+freshSessions.issue(3).token;
       const status=await request('/checkouts/'+body.request_id);assert.equal(status.body.data.status,'completed');
       const replay=await post(body);assert.equal(replay.status,200);assert.equal(replay.body.data.receipt.sale_id,status.body.data.receipt.sale_id);
       assert.equal(await quantity(21),beforeQty-2);
       // Restore the original dependency objects for subsequent fault injection.
-      await new Promise(resolve=>server.close(resolve));server=app.listen(0,'127.0.0.1');await once(server,'listening');cookies.employee='tgp_session='+sessions.issue(3).token;
+      await new Promise(resolve=>server.close(resolve));server=await listenForFetch(app);cookies.employee='tgp_session='+sessions.issue(3).token;
     });
     await t.test('audit failure rolls back sale, payment, lines and stock together', async () => {
       const counts=async()=> (await db.query('SELECT (SELECT count(*) FROM sales) AS sales,(SELECT count(*) FROM sale_items) AS items,(SELECT count(*) FROM payments) AS payments,(SELECT count(*) FROM activity_logs) AS logs')).rows[0];
@@ -197,6 +200,13 @@ test('isolated PostgreSQL POS and FEFO checkout', { skip: process.env.RUN_POS_DB
       auth.audit=async()=>{throw new Error('Simulated failure')};
       try { assert.equal((await post(checkout([{product_id:2,quantity:2}],'10'))).status,500) } finally {auth.audit=original}
       assert.deepEqual(await counts(),beforeCounts); assert.equal(await quantity(21),beforeQty);
+    });
+    await t.test('receipt instants are independent of Node host timezone',async()=>{
+      // JSON Date has millisecond precision; PostgreSQL retains microseconds.
+      const expected=Math.floor(Number((await db.query("SELECT extract(epoch FROM sale_date AT TIME ZONE 'UTC')*1000 AS millis FROM sales WHERE sale_id=$1",[saleId])).rows[0].millis));
+      const prior=process.env.TZ;
+      try{for(const zone of ['UTC','Asia/Manila','America/New_York']){process.env.TZ=zone;assert.equal(Date.parse((await request('/sales/'+saleId)).body.data.sale_date),expected);}}
+      finally{if(prior===undefined)delete process.env.TZ;else process.env.TZ=prior;}
     });
     await t.test('receipts retain sale-time prices and audit has actor and time', async () => {
       await db.query('UPDATE products SET unit_price=99 WHERE product_id=2');

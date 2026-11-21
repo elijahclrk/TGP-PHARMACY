@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { once } from 'node:events';
+import { listenForFetch } from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { createPosRouter } from '../src/routes/pos.routes.js';
@@ -12,7 +12,7 @@ import { errorHandler } from '../src/middleware/error-handler.js';
 // transactions. This tests protocol decisions, NOT PostgreSQL SQL/locking.
 function database() {
   let state={qty:5,sales:[],items:[],payments:[],logs:[]},savepoint,tail=Promise.resolve();
-  const control={auditFails:false,loseCommit:false};
+  const control={auditFails:false,loseCommit:false,price:'10.00',name:'Fixture',batch:1,expiry:'2099-01-01',today:'2026-11-21'};
   const cents=s=>BigInt(String(s).replace('.','').padEnd(String(s).includes('.')?String(s).length-1:String(s).length+2,'0'));
   const client={async query(sql,v=[]) {
     if(sql.startsWith('SAVEPOINT')){savepoint=structuredClone(state);return {};}
@@ -25,10 +25,11 @@ function database() {
     if(sql.startsWith('SELECT method,amount_paid'))return {rows:state.payments.filter(p=>p.sale_id===v[0])};
     if(sql.includes('sum(i.quantity)::text AS quantity'))return {rows:[{product_id:1,quantity:String(state.items.filter(i=>i.sale_id===v[0]).reduce((n,i)=>n+i.quantity,0))}]};
     if(sql.includes('count(*)=1 AND bool_and'))return {rows:[{same:state.payments.filter(p=>p.sale_id===v[0]).length===1&&state.payments.some(p=>p.sale_id===v[0]&&cents(p.amount_paid)===cents(v[1]))}]};
-    if(sql.includes('ORDER BY product_id FOR UPDATE'))return {rows:[{product_id:1,name:'Fixture',unit_price:'10.00'}]};
-    if(sql.startsWith('SELECT p.product_id,p.name')){const q=JSON.parse(v[0])[0].quantity;return {rows:[{product_id:1,name:'Fixture',unit_price:'10.00',quantity:q,line_total:(q*10).toFixed(2)}]};}
-    if(sql.startsWith('SELECT sum(round'))return {rows:[{total:(JSON.parse(v[0])[0].quantity*10).toFixed(2)}]};
-    if(sql.startsWith('SELECT batch_id,qty_on_hand'))return {rows:state.qty>0?[{batch_id:1,qty_on_hand:state.qty}]:[]};
+    if(sql.includes('ORDER BY product_id FOR UPDATE'))return {rows:[{product_id:1,name:control.name,unit_price:control.price}]};
+    if(sql.startsWith('SELECT p.product_id,p.name')){const q=JSON.parse(v[0])[0].quantity;return {rows:[{product_id:1,name:control.name,unit_price:control.price,quantity:q,line_total:(q*Number(control.price)).toFixed(2)}]};}
+    if(sql.startsWith('SELECT sum(round'))return {rows:[{total:(JSON.parse(v[0])[0].quantity*Number(control.price)).toFixed(2)}]};
+    if(sql.startsWith('SELECT batch_id,qty_on_hand'))return {rows:state.qty>0?[{batch_id:control.batch,qty_on_hand:state.qty,batch_no:'Fixture',expiry_date:control.expiry}]:[]};
+    if(sql.startsWith('SELECT to_char(clock_timestamp()'))return {rows:[{business_date:control.today}]};
     if(sql.startsWith('SELECT $1::numeric'))return {rows:[{enough:cents(v[0])>=cents(v[1]),paid:Number(v[0]).toFixed(2),change:Number((cents(v[0])-cents(v[1]))/100n).toFixed(2)}]};
     if(sql.startsWith('INSERT INTO sales')){const s={sale_id:v[0],user_id:v[1],receipt_no:v[2],total_amount:v[3],username:'fixture',approved_by:null,sale_date:'2026-11-20T00:00:00Z'};state.sales.push(s);return {rows:[{sale_id:s.sale_id}]};}
     if(sql.startsWith('UPDATE batches')){if(state.qty<v[1])return {rowCount:0};state.qty-=v[1];return {rowCount:1};}
@@ -49,15 +50,18 @@ function database() {
 async function setup(t,db=database()) {
   const app=express();app.use(express.json());app.use(cookieParser());
   const sessions={verify:id=>['1','2','3'].includes(id)?{userId:Number(id),id}:null,revoke(){}};
-  app.use(createPosRouter({config:{origin:'http://localhost:5173',secure:false},sessions,authRepository:db.auth,repository:createPosRepository(()=>db.client)}));
-  app.use(errorHandler);const server=app.listen(0,'127.0.0.1');await once(server,'listening');
+  app.use(createPosRouter({config:{origin:'http://localhost:5173',secure:false,secret:'synthetic-pos-quote-key-for-regression-only'},sessions,authRepository:db.auth,repository:createPosRepository(()=>db.client)}));
+  app.use(errorHandler);const server=await listenForFetch(app);
   t.after(()=>new Promise(resolve=>server.close(resolve)));
   const base='http://127.0.0.1:'+server.address().port;
   const request=async(path,{body,user='3',origin='http://localhost:5173'}={})=>{
     const r=await fetch(base+path,{method:body?'POST':'GET',headers:{Origin:origin,'Content-Type':'application/json','X-TGP-Request':'1',...(user?{Cookie:'tgp_session='+user}:{})},...(body?{body:JSON.stringify(body)}:{})});
     return {status:r.status,body:await r.json()};
   };
-  return {...db,request,post:body=>request('/checkout',{body}),resolve:id=>request('/checkouts/'+id+'/resolve',{body:{}})};
+  return {...db,request,post:async body=>{
+    if (!Object.hasOwn(body,'quote_token')) body.quote_token=(await request('/quote',{body:{items:body.items}})).body.data?.quote_token;
+    return request('/checkout',{body});
+  },resolve:id=>request('/checkouts/'+id+'/resolve',{body:{}})};
 }
 const cart=(paid='20.00',quantity=1)=>({request_id:randomUUID(),items:[{product_id:1,quantity}],amount_paid:paid});
 
@@ -109,4 +113,41 @@ test('resolution enforces authentication, origin and strict request fields',asyn
   assert.equal((await f.request('/checkouts/'+id+'/resolve',{origin:'https://untrusted.example',body:{}})).status,403);
   assert.equal((await f.request('/checkouts/'+id+'/resolve',{body:{force:true}})).status,400);
   assert.equal((await f.request('/checkouts/not-a-uuid/resolve',{body:{}})).status,400);assert.equal(f.state().logs.length,0);
+});
+
+test('price increases and decreases require fresh explicit review, without stock or payment writes', async t => {
+  for (const price of ['12.00','8.00']) {
+    const f=await setup(t), body=cart('100.00');
+    body.quote_token=(await f.request('/quote',{body:{items:body.items}})).body.data.quote_token;
+    f.control.price=price;
+    const changed=await f.post(body);
+    assert.equal(changed.status,409);assert.equal(changed.body.checkout_state,'closed');
+    assert.equal(f.state().qty,5);assert.equal(f.state().sales.length,0);assert.equal(f.state().payments.length,0);
+    const fresh=cart('100.00');assert.equal((await f.post(fresh)).status,201);
+    assert.equal(f.state().sales[0].total_amount,price);assert.equal((await f.post(body)).status,409);
+  }
+});
+
+test('identity, FEFO batch, expiry and Manila date changes invalidate the reviewed quote', async t => {
+  for (const [field,value] of [['name','Renamed'],['batch',2],['expiry','2099-02-01'],['today','2026-11-22']]) {
+    const f=await setup(t), body=cart();
+    body.quote_token=(await f.request('/quote',{body:{items:body.items}})).body.data.quote_token;
+    f.control[field]=value;
+    assert.equal((await f.post(body)).body.checkout_state,'closed');
+    assert.equal(f.state().qty,5);assert.equal(f.state().sales.length,0);
+  }
+});
+
+test('new unsigned/tampered/other-cashier quotes cannot post; legacy paid references still replay', async t => {
+  const f=await setup(t);
+  const token=(await f.request('/quote',{body:{items:cart().items}})).body.data.quote_token;
+  for (const quote_token of [undefined,'tampered',token.slice(0,-3)+'xxx']) {
+    assert.equal((await f.post({...cart(),quote_token})).body.checkout_state,'closed');
+  }
+  const other=(await f.request('/quote',{user:'2',body:{items:cart().items}})).body.data.quote_token;
+  assert.equal((await f.post({...cart(),quote_token:other})).status,409);
+  const paid=cart();assert.equal((await f.post(paid)).status,201);
+  f.control.price='999.00';
+  assert.equal((await f.post({...paid,quote_token:undefined})).status,200);
+  assert.equal(f.state().sales.length,1);assert.equal(f.state().qty,4);
 });

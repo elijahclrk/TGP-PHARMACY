@@ -99,9 +99,10 @@ export async function runWorkflows(config,{seed=false}={}) {
       ensure(zero.qty_on_hand===0);
       ensure((await api('/purchase-orders/'+po.po_id,{role:'manager'})).data.status==='approved');
       const cart={items:[{product_id:a.product_id,quantity:5}]};
-      ensure((await post('/pos/quote',cart,'employee',200)).data.total==='50.00');
+      const quote=(await post('/pos/quote',cart,'employee',200)).data;
+      ensure(quote.total==='50.00');
       requestId=randomUUID();
-      const checkout={...cart,request_id:requestId,amount_paid:'100.00'};
+      const checkout={...cart,request_id:requestId,amount_paid:'100.00',quote_token:quote.quote_token};
       const first=(await post('/pos/checkout',checkout,'employee')).data;
       ensure(first.replayed===false);sale=first.receipt;
       // Identical retry must replay, not deduct again.
@@ -133,7 +134,7 @@ export async function runWorkflows(config,{seed=false}={}) {
     for(const period of ['week','month'])await api('/reports/sales?'+range+'&period='+period);
     await api('/reports/sales?'+range+'&period=month',{role:'manager',status:403});
     await api('/reports/sales?'+range,{role:'employee',status:403});
-    for(const path of ['/reports/products?'+range,'/reports/profit?'+range,'/reports/valuation','/reports/low-stock','/reports/near-expiry?days=30'])await api(path);
+    for(const path of ['/reports/products?'+range,'/reports/profit?'+range,'/reports/valuation','/reports/low-stock','/reports/near-expiry'])await api(path);
     // All quantities must reconcile to approved receipts minus persisted sales.
     const mismatch=(await client.query(`SELECT count(*)::int AS n FROM batches b WHERE b.qty_on_hand IS DISTINCT FROM
       (coalesce((SELECT sum(i.quantity) FROM stock_in_items i JOIN stock_ins s ON s.stock_in_id=i.stock_in_id WHERE i.batch_id=b.batch_id AND s.approved_by IS NOT NULL),0)

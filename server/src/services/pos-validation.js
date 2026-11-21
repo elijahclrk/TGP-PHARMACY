@@ -5,6 +5,9 @@ export const cartInput = z.object({ items: z.array(z.object({ product_id: id, qu
 export const checkoutInput = cartInput.safeExtend({
   request_id: z.uuid(),
   amount_paid: z.string().regex(/^\d{1,20}(\.\d{1,2})?$/),
+  // Optional solely for recovery of pre-upgrade paid requests. New sales without
+  // a valid quote are closed safely by the transaction/recovery protocol.
+  quote_token: z.string().min(1).max(512).optional(),
 });
 export function posInput(schema, value, res) {
   const result = schema.safeParse(value);

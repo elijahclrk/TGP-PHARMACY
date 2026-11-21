@@ -13,7 +13,7 @@ import BatchForm from './BatchForm'
 vi.mock('../auth/api', () => ({ requestJson: vi.fn() }))
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 const product = { product_id: 1, name: 'Test product', generic_name: 'Generic', category: null, unit_price: '10', qty_on_hand: '2', batch_count: 1, reorder_level: 5, low_stock: true }
-const batch = { batch_id: 2, product_id: 1, product_name: 'Test product', batch_no: 'B1', qty_on_hand: 0, expiry_date: '2027-01-01', days_to_expiry: 10, cost_price: '6', selling_price: '10' }
+const batch = { batch_id: 2, product_id: 1, product_name: 'Test product', batch_no: 'B1', qty_on_hand: 0, expiry_date: '2027-01-01', days_to_expiry: 10, expiry_status: 'near_expiry', cost_price: '6', selling_price: '10' }
 const page = data => ({ data, total: data.length, page: 1, limit: 20 })
 function mount(node, role = 'employee', path = '/') {
   return render(<MemoryRouter initialEntries={[path]}><AuthContext.Provider value={{ user: { role, full_name: 'Test Staff' }, logout: vi.fn() }}>{node}</AuthContext.Provider></MemoryRouter>)
@@ -47,7 +47,7 @@ test('employee never renders batch cost or edit controls even if supplied in dat
   await screen.findByText('B1')
   expect(screen.queryByText('Cost price')).toBeNull()
   expect(screen.queryByRole('button', { name: /Edit batch/ })).toBeNull()
-  expect(screen.getByText('Near expiry')).toBeTruthy()
+  expect(screen.getByText('Upcoming expiry')).toBeTruthy()
 })
 test('manager can open zero-stock batch editor; expiry window is explicit', async () => {
   requestJson.mockImplementation(async path => path.startsWith('/inventory') ? page([batch]) : { data: product })
@@ -58,10 +58,9 @@ test('manager can open zero-stock batch editor; expiry window is explicit', asyn
   expect(document.querySelector('input[name="qty_on_hand"]')).toBeNull()
   await user.click(screen.getByRole('button', { name: 'Cancel' }))
   await user.selectOptions(screen.getByLabelText('Expiry filter'), 'near_expiry')
-  await user.clear(screen.getByLabelText('Window (days)'))
-  await user.type(screen.getByLabelText('Window (days)'), '7')
+  expect(screen.queryByLabelText('Window (days)')).toBeNull()
   await user.click(screen.getByRole('button', { name: 'Search batches' }))
-  await waitFor(() => expect(requestJson.mock.calls.some(([path]) => path.includes('status=near_expiry&days=7'))).toBe(true))
+  await waitFor(() => expect(requestJson.mock.calls.some(([path]) => path.includes('status=near_expiry') && !path.includes('days='))).toBe(true))
 })
 test('batch submit sends metadata only, without any quantity', async () => {
   requestJson.mockResolvedValue({ data: batch })

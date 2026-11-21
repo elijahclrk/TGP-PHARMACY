@@ -15,6 +15,10 @@ export const productReportQuery = z.object({ ...range,
   limit:z.string().regex(/^\d{1,3}$/).transform(Number).refine(value=>value>=1 && value<=100).default(20),
 }).strict().refine(withinYear);
 export const emptyQuery = z.object({}).strict();
+export const detailReportQuery = z.object({...range,
+  category:z.string().trim().max(200).default(''),
+  max_units:z.string().regex(/^\d{1,6}$/).transform(Number).default(0),
+}).strict().refine(withinYear);
 export function reportInput(schema,value,res) {
   const result=schema.safeParse(value);
   if(!result.success) {res.status(400).json({success:false,message:'Use valid report filters and an inclusive date range of at most 366 days.'});return null;}

@@ -24,9 +24,8 @@ const common = { q: z.string().trim().max(200).default(''), page: page.default(1
 export const productQuery = z.object({ ...common, category: z.string().trim().max(200).default(''),
   stock: z.enum(['all', 'low']).default('all') }).strict();
 export const batchQuery = z.object({ ...common, product_id: idValue.optional(),
-  status: z.enum(['all', 'near_expiry', 'expired']).default('all'),
-  days: z.string().regex(/^\d{1,3}$/).transform(Number).refine(value => value <= 365).optional(),
-}).strict().refine(value => value.status !== 'near_expiry' || value.days !== undefined);
+  status: z.enum(['all', 'near_expiry', 'expiring_today', 'expired']).default('all'),
+}).strict();
 
 export function parseInput(schema, value, res) {
   const parsed = schema.safeParse(value);

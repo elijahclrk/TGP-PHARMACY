@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import pg from 'pg';
 
 // Fake credentials ensure automated tests never contact the real database.
@@ -12,8 +12,7 @@ let server;
 let baseUrl;
 
 before(async () => {
-  server = app.listen(0, '127.0.0.1');
-  await once(server, 'listening');
+  server = await listenForFetch(app);
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
 

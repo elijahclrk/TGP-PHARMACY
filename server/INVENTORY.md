@@ -1,5 +1,13 @@
 # Product and inventory management
 
+**Batch 1 update (2026-11-21):** upcoming expiry is strictly after today through
+three calendar months from the Manila business date. `expiring_today` is a
+separate stock-bearing filter. `days` overrides are rejected. Lists return
+`business_date`, `near_expiry_through` and per-batch `expiry_status`. Admin
+threshold management reuses `products.reorder_level` (NULL is explicitly unset).
+See [current design/compatibility contract](../docs/phase4/DEVELOPMENT_BATCH1_DESIGN.md).
+This supersedes earlier configurable-window descriptions below.
+
 Implemented against the existing Phase 3 products, batches and activity_logs tables. No schema migration or business records are added by installation. Authentication, CSRF checks and active-account checks apply to all inventory APIs.
 
 ## Permissions and stock safety

@@ -1,5 +1,26 @@
 # Phase 4 requirements and deployment readiness audit
 
+## Batch 7 latest local status — 2026-11-21
+
+[Batch 7 results](phase4/BATCH7_RESULTS.md) records corrected canonical packaging,
+within-category rankings, limited browser-local Admin reminders, batch picker and
+expiry-only inventory measures. Current QA: 120 frontend, 183 backend entries,
+17 Chrome groups/38 screenshots; lint/build pass. Docker runtime is blocked by
+unavailable Docker. Durable settings, statutory/fiscal completion and genuine
+owner/pharmacist acceptance remain pending. No production connection occurred.
+
+## Current status superseding historical findings — Batch 6, 2026-11-21
+
+See [requirements matrix](phase4/FINAL_REQUIREMENTS_MATRIX.md),
+[QA/known blockers](phase4/BATCH6_QA_RESULTS.md) and
+[release gates](phase4/RELEASE_CHECKLIST.md). Current local results: 113 frontend,
+178 backend entries, 15 real Chrome groups, lint/build passed; no permitted local
+DB suite skipped. Exports/protected workflows locally tested; statutory checkout
+unavailable. Full live release blocked; owner/pharmacist UAT pending. Batch 6
+never connected to Neon. Statements below about absent Git, live/empty accounts,
+missing browsers, earlier counts or now-implemented modules are historical,
+not current verification of production; retained as the original record.
+
 ## Subsequent owner-authorized account update - 2026-11-20
 
 The project owner subsequently authorized one initial Admin and one Employee in existing Neon `neondb`. Both active accounts were created through the existing bootstrap/account services, with random private credentials and Argon2id verification. **18 real local HTTP checks passed**, including both logins, role dashboards, Employee restrictions, logout and revocation. Earlier empty-user/login-blocker statements below are historical and superseded by this update. Business tables remain empty; stock receiving, paid sales and populated reports are still not demonstrated. No new database, business seed, schema/migration change, image activation, commit, push or deployment occurred. See [ACADEMIC_ACCOUNT_SETUP.md](phase4/ACADEMIC_ACCOUNT_SETUP.md) for the redacted evidence and private credential-file instructions. No instructor/adviser approval is implied.

@@ -18,7 +18,8 @@ test('inventory input boundaries reject quantity injection and invalid money/dat
 test('pagination and expiry queries have bounded strict inputs', () => {
   assert.deepEqual(productQuery.parse({}), { q: '', category: '', stock: 'all', page: 1, limit: 20 });
   for (const query of [{ page: '0' }, { page: '-1' }, { limit: '101' }, { page: ['1', '2'] }, { includeCost: 'true' }]) assert(!productQuery.safeParse(query).success);
-  assert(!batchQuery.safeParse({ status: 'near_expiry' }).success);
+  assert(batchQuery.safeParse({ status: 'near_expiry' }).success);
   assert(!batchQuery.safeParse({ status: 'near_expiry', days: '366' }).success);
-  assert(batchQuery.safeParse({ status: 'near_expiry', days: '0' }).success);
+  assert(!batchQuery.safeParse({ status: 'near_expiry', days: '0' }).success);
+  assert(batchQuery.safeParse({ status: 'expiring_today' }).success);
 });

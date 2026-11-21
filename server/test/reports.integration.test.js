@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { once } from 'node:events';
+import {listenForFetch} from '../testing/local-http.mjs';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { getPool, closePool } from '../src/config/database.js';
+import { getPool, closePool } from './support/disposable-database.js';
 import { createAuthRepository } from '../src/repositories/auth.repository.js';
 import { createPosRepository } from '../src/repositories/pos.repository.js';
 import { createSessions } from '../src/services/sessions.js';
@@ -13,6 +13,7 @@ import { createReportsRouter } from '../src/routes/reports.routes.js';
 import { createReportsRepository } from '../src/repositories/reports.repository.js';
 import { createInventoryRepository } from '../src/repositories/inventory.repository.js';
 import { errorHandler } from '../src/middleware/error-handler.js';
+import ExcelJS from 'exceljs';
 
 test('isolated PostgreSQL read-only reporting', { skip: process.env.RUN_REPORTS_DB_TESTS !== '1' }, async t => {
   // Committed isolated schema is necessary for genuine multi-connection locking tests.
@@ -85,7 +86,11 @@ test('isolated PostgreSQL read-only reporting', { skip: process.env.RUN_REPORTS_
     await db.query("INSERT INTO stock_in_items(item_id,stock_in_id,batch_id,quantity,unit_cost) VALUES(1,1,1,5,0.25),(2,1,2,5,0.25),(3,1,3,2,1)");
     const auth=createAuthRepository(provider),pos=createPosRepository(provider);
     const actor={user_id:3,role:'employee',status:'active'};
-    const sale=async(items,paid)=>auth.transaction(client=>pos.checkout(client,actor,{items,amount_paid:paid,request_id:randomUUID()},auth.audit));
+    const sale=async(items,paid)=>auth.transaction(async client=>{
+      const data={items,amount_paid:paid,request_id:randomUUID()};
+      const quote=await pos.quote(client,data);
+      return pos.checkout(client,actor,data,auth.audit,quote.fingerprint);
+    });
     const first=(await sale([{product_id:1,quantity:6}],'10')).receipt;
     const second=(await sale([{product_id:1,quantity:1}],'2')).receipt;
     const huge=(await sale([{product_id:2,quantity:1}],'9007199254740994')).receipt;
@@ -97,7 +102,7 @@ test('isolated PostgreSQL read-only reporting', { skip: process.env.RUN_REPORTS_
     const config={secret:randomBytes(48).toString('hex'),ttl:900,secure:false,origin:'http://localhost:5173'};
     const sessions=createSessions(config),cookies=Object.fromEntries(['admin','manager','employee'].map((role,i)=>[role,'tgp_session='+sessions.issue(i+1).token]));
     const app=express();app.use(cookieParser());app.use(createReportsRouter({config,sessions,authRepository:auth,repository:createReportsRepository(provider),inventoryRepository:createInventoryRepository(provider)}));app.use(errorHandler);
-    server=app.listen(0,'127.0.0.1');await once(server,'listening');
+    server=await listenForFetch(app);
     const get=async(path,role='admin')=>{const r=await fetch(`http://127.0.0.1:${server.address().port}${path}`,{headers:role?{Cookie:cookies[role]}:{}});return {status:r.status,body:await r.json()}};
     const range='from=2026-01-04&to=2026-01-05';
     const fixtureSnapshot=async()=>{const rows=[];for(const table of tables) rows.push((await db.query(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb) AS rows FROM ${table} t`)).rows[0].rows);return rows};
@@ -113,7 +118,7 @@ test('isolated PostgreSQL read-only reporting', { skip: process.env.RUN_REPORTS_
       const month=await get('/sales?from=2026-01-01&to=2026-02-28&period=month');assert.deepEqual(month.body.data.map(row=>row.period_start),['2026-01-01','2026-02-01']);assert.equal(month.body.sales_amount,'9007199254741000.08');
     });
     await t.test('RBAC blocks employee reports and manager financial detail/monthly access',async()=>{
-      for(const path of ['/sales?'+range,'/products?'+range,'/profit?'+range,'/valuation','/low-stock','/near-expiry?days=30'])assert.equal((await get(path,'employee')).status,403);
+      for(const path of ['/sales?'+range,'/products?'+range,'/profit?'+range,'/valuation','/low-stock','/near-expiry'])assert.equal((await get(path,'employee')).status,403);
       assert.equal((await get('/sales?'+range,null)).status,401);
       assert.equal((await get('/sales?'+range,'manager')).status,200);
       assert.equal((await get('/sales?'+range+'&period=week','manager')).status,200);
@@ -127,15 +132,66 @@ test('isolated PostgreSQL read-only reporting', { skip: process.env.RUN_REPORTS_
     });
     await t.test('inventory and verified cost estimates retain exact arithmetic',async()=>{
       const low=await get('/low-stock','manager');assert.equal(low.body.total,1);assert.equal(low.body.data[0].qty_on_hand,'3');
-      const near=await get('/near-expiry?days=365','manager');assert.equal(near.body.total,2);assert(near.body.data.every(row=>!Object.hasOwn(row,'cost_price')));
+      const near=await get('/near-expiry','manager');assert.equal(near.body.total,2);assert(near.body.data.every(row=>!Object.hasOwn(row,'cost_price')));
       const value=await get('/valuation');assert.equal(value.body.cost_value,'1.75');assert.equal(value.body.unverified_batches,0);
       const profit=await get('/profit?'+range);assert.equal(profit.body.cost_amount,'1.75');assert.equal(profit.body.gross_profit,'5.32');assert.equal(profit.body.gross_margin_percent,'75.25');
       assert.deepEqual(await fixtureSnapshot(),unchanged);
+    });
+    await t.test('transaction/category/slow-moving views reconcile and enforce Admin filters',async()=>{
+      const transactions=await get('/transactions?'+range);assert.equal(transactions.status,200);assert.equal(transactions.body.total,2);assert.deepEqual(transactions.body.data.map(x=>x.sales_amount),['6.06','1.01']);
+      const categories=await get('/categories?'+range);assert.equal(categories.body.data[0].sales_amount,'7.07');
+      const slow=await get('/slow-moving?'+range+'&max_units=0');assert.equal(slow.body.data.length,1);assert.equal(slow.body.data[0].product_id,2);assert.equal(slow.body.data[0].units,'0');
+      for(const kind of ['transactions','categories','slow-moving','returns']){
+        assert.equal((await get('/'+kind+'?'+range,'manager')).status,403);
+        assert.equal((await get('/'+kind+'?'+range,'employee')).status,403);
+      }
+      assert.equal((await get('/slow-moving?'+range+'&max_units=-1')).status,400);
+      assert.deepEqual(await fixtureSnapshot(),unchanged);
+    });
+    await t.test('exports enforce Admin RBAC, filters and actual readable Excel/PDF bytes',async()=>{
+      for(const kind of ['sales','transactions','products','categories','best-selling','slow-moving','returns','profit','valuation','low-stock','near-expiry'])for(const format of ['xlsx','pdf']){
+        const path='/'+kind+'/export?'+(['valuation','low-stock','near-expiry'].includes(kind)?'':range+'&')+'format='+format;
+        for(const role of ['manager','employee'])assert.equal((await get(path,role)).status,403);
+        const response=await fetch(`http://127.0.0.1:${server.address().port}`+path,{headers:{Cookie:cookies.admin}});
+        assert.equal(response.status,200);const bytes=Buffer.from(await response.arrayBuffer());
+        assert.equal(bytes.subarray(0,format==='pdf'?4:2).toString(),format==='pdf'?'%PDF':'PK');
+      }
+      assert.equal((await get('/sales/export?'+range+'&format=csv')).status,400);
+      assert.equal((await get('/products/export?'+range+'&format=xlsx&page=2')).status,400);
+      assert.deepEqual(await fixtureSnapshot(),unchanged);
+    });
+    await t.test('legacy return rows are reported separately and never erase paid transactions',async()=>{
+      await db.query("INSERT INTO sale_returns(return_id,sale_id,processed_by,quantity,reason,return_date) VALUES(77,$1,3,1,'Synthetic legacy','2026-01-05')",[first.sale_id]);
+      const returns=await get('/returns?'+range);assert.equal(returns.body.data[0].decision_state,'legacy_unclassified');
+      assert.equal((await get('/sales?'+range)).body.sales_amount,'7.07');
+      assert.equal((await get('/transactions?'+range)).body.data[0].return_requests,1);
     });
     await t.test('missing costs withhold complete estimates instead of silently understating costs',async()=>{
       await db.query('UPDATE batches SET cost_price=NULL WHERE batch_id=2');
       const value=await get('/valuation');assert.equal(value.body.cost_value,null);assert.equal(value.body.unverified_batches,1);
       const profit=await get('/profit?'+range);assert.equal(profit.body.gross_profit,null);assert.equal(profit.body.gross_margin_percent,null);assert.equal(profit.body.unverified_lines,2);
+    });
+    await t.test('within-category dense rankings preserve exact sales, ties, zero-sale products, filters, RBAC and Excel data',async()=>{
+      await db.query("INSERT INTO products(product_id,name,category,unit_price) VALUES(3,'Tie','Confirmed fixture',2),(4,'Lower','Confirmed fixture',2),(5,'Other sold','Other fixture',2),(6,'Other zero','Other fixture',2),(7,'Category zero','Confirmed fixture',2)");
+      await db.query("INSERT INTO batches(batch_id,product_id,batch_no,expiry_date,qty_on_hand,cost_price) VALUES(103,3,'RANK3','2099-01-01',7,1),(104,4,'RANK4','2099-01-01',2,1),(105,5,'RANK5','2099-01-01',3,1)");
+      for(const [product_id,quantity,paid]of [[3,7,'14'],[4,2,'4'],[5,3,'6']]){
+        const receipt=(await sale([{product_id,quantity}],paid)).receipt;
+        await db.query("UPDATE sales SET sale_date='2026-01-05 00:00:00' WHERE sale_id=$1",[receipt.sale_id]);
+      }
+      const best=(await get('/best-selling?'+range)).body.data;
+      assert.deepEqual(best.map(row=>[row.product_id,row.category_rank,row.units]),[[1,1,'7'],[3,1,'7'],[4,2,'2'],[5,1,'3']]);
+      const slow=(await get('/slow-moving?'+range+'&max_units=7&category=Confirmed%20fixture')).body.data;
+      assert.deepEqual(slow.map(row=>[row.product_id,row.category_rank]),[[7,1],[4,2],[1,3],[3,3]]);
+      assert.equal((await get('/slow-moving?'+range)).body.data.find(row=>row.product_id===2).current_category,null);
+      assert.deepEqual((await get('/best-selling?'+range+'&category=No%20such%20category')).body.data,[]);
+      for(const role of ['manager','employee'])assert.equal((await get('/best-selling?'+range,role)).status,403);
+      assert.equal((await get('/transactions?'+range+'&category=Other')).status,400);
+      const response=await fetch(`http://127.0.0.1:${server.address().port}/best-selling/export?${range}&format=xlsx`,{headers:{Cookie:cookies.admin}});
+      assert.equal(response.status,200);const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(Buffer.from(await response.arrayBuffer()));
+      const values=[];workbook.getWorksheet('Report').eachRow(row=>values.push(row.values.slice(1)));
+      assert(values.some(row=>row[0]==='Confirmed fixture'&&row[1]==='1'&&row[3]==='Medicine'&&row[5]==='7.07'));
+      assert(values.some(row=>row[0]==='Other fixture'&&row[3]==='Other sold'&&row[5]==='6.00'));
+      assert.equal((await get('/sales?'+range)).body.sales_amount,'31.07');
     });
   } finally {
     if(server)await new Promise(resolve=>server.close(resolve));

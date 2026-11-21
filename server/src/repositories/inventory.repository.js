@@ -1,10 +1,15 @@
 import { insertWithId } from './auth.repository.js';
+import { businessTodaySql, nearExpiryThroughSql } from '../services/expiry-policy.js';
 
-const today = "(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date";
+const today = businessTodaySql;
 const aggregates = `SELECT p.product_id,p.name,p.generic_name,p.category,p.unit_price::text AS unit_price,p.reorder_level,
   count(b.batch_id)::int AS batch_count,
   CASE WHEN count(b.batch_id) FILTER(WHERE b.qty_on_hand IS NULL)>0 THEN NULL
     ELSE coalesce(sum(b.qty_on_hand),0)::text END AS qty_on_hand,
+  CASE WHEN count(b.batch_id) FILTER(WHERE b.qty_on_hand IS NULL OR (b.qty_on_hand>0 AND b.expiry_date IS NULL))>0 THEN NULL
+    ELSE coalesce(sum(b.qty_on_hand) FILTER(WHERE b.expiry_date>${today}),0)::text END AS within_date_qty,
+  CASE WHEN count(b.batch_id) FILTER(WHERE b.qty_on_hand IS NULL)>0 THEN NULL
+    ELSE coalesce(sum(b.qty_on_hand) FILTER(WHERE b.expiry_date<=${today}),0)::text END AS expired_or_today_qty,
   CASE WHEN count(b.batch_id) FILTER(WHERE b.qty_on_hand IS NULL)>0 OR p.reorder_level IS NULL THEN NULL
     ELSE coalesce(sum(b.qty_on_hand),0)<=p.reorder_level END AS low_stock
   FROM products p LEFT JOIN batches b ON b.product_id=p.product_id GROUP BY p.product_id`;
@@ -13,6 +18,8 @@ const missing = () => Object.assign(new Error('Record not found'), { status: 404
 export function createInventoryRepository(poolProvider) {
   const pagination = (query, values, cte, order) => poolProvider().query(
     `WITH filtered AS (${cte}) SELECT (SELECT count(*)::int FROM filtered) AS total,
+      to_char(${today},'YYYY-MM-DD') AS business_date,
+      to_char(${nearExpiryThroughSql},'YYYY-MM-DD') AS near_expiry_through,
       coalesce((SELECT json_agg(page_rows) FROM (SELECT * FROM filtered ORDER BY ${order}
       LIMIT $${values.length + 1} OFFSET $${values.length + 2}) page_rows),'[]'::json) AS data`,
     [...values, query.limit, (query.page - 1) * query.limit]).then(result => ({ ...result.rows[0], page: query.page, limit: query.limit }));
@@ -28,15 +35,19 @@ export function createInventoryRepository(poolProvider) {
     },
     batches(query, includeCost) {
       // Cost projection is chosen by the authenticated server-side role only.
-      return pagination(query, [query.q, query.product_id ?? null, query.status, query.days ?? 0],
+      return pagination(query, [query.q, query.product_id ?? null, query.status],
         `SELECT b.batch_id,b.product_id,p.name AS product_name,p.generic_name,p.category,b.batch_no,
           to_char(b.expiry_date,'YYYY-MM-DD') AS expiry_date,b.qty_on_hand,b.selling_price::text AS selling_price,
-          b.expiry_date-${today} AS days_to_expiry${includeCost ? ',b.cost_price::text AS cost_price' : ''}
+          b.expiry_date-${today} AS days_to_expiry,
+          CASE WHEN b.expiry_date IS NULL THEN 'unknown' WHEN b.expiry_date<${today} THEN 'expired'
+            WHEN b.expiry_date=${today} THEN 'expiring_today'
+            WHEN b.expiry_date<=${nearExpiryThroughSql} THEN 'near_expiry' ELSE 'within_date' END AS expiry_status${includeCost ? ',b.cost_price::text AS cost_price' : ''}
         FROM batches b JOIN products p ON p.product_id=b.product_id
         WHERE ($1='' OR strpos(lower(coalesce(p.name,'')),lower($1))>0
           OR strpos(lower(coalesce(p.generic_name,'')),lower($1))>0 OR strpos(lower(coalesce(b.batch_no,'')),lower($1))>0)
           AND ($2::integer IS NULL OR b.product_id=$2)
-          AND ($3='all' OR ($3='near_expiry' AND b.qty_on_hand>0 AND b.expiry_date BETWEEN ${today} AND ${today}+$4::integer)
+          AND ($3='all' OR ($3='near_expiry' AND b.qty_on_hand>0 AND b.expiry_date>${today} AND b.expiry_date<=${nearExpiryThroughSql})
+            OR ($3='expiring_today' AND b.qty_on_hand>0 AND b.expiry_date=${today})
             OR ($3='expired' AND b.qty_on_hand>0 AND b.expiry_date<${today}))`, 'expiry_date NULLS LAST, batch_id');
     },
     insertProduct: (client, data) => insertWithId(client,

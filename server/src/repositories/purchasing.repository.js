@@ -4,8 +4,8 @@ const fail = status => { throw Object.assign(new Error('Purchasing request canno
 // Identifiers below are fixed application constants, never request data.
 const types = {
   suppliers: { table: 'suppliers', key: 'supplier_id', search: 'name', projection: 't.*' },
-  orders: { table: 'purchase_orders', key: 'po_id', search: 's.name', projection: 't.*,s.name AS supplier_name' },
-  receiving: { table: 'stock_ins', key: 'stock_in_id', search: "s.name || ' ' || coalesce(t.delivery_ref,'')", projection: 't.*,s.name AS supplier_name' },
+  orders: { table: 'purchase_orders', key: 'po_id', search: 's.name', projection: "t.po_id,t.supplier_id,t.created_by,t.approved_by,t.order_date AT TIME ZONE 'UTC' AS order_date,t.status,s.name AS supplier_name" },
+  receiving: { table: 'stock_ins', key: 'stock_in_id', search: "s.name || ' ' || coalesce(t.delivery_ref,'')", projection: "t.stock_in_id,t.supplier_id,t.received_by,t.approved_by,t.delivery_ref,t.date_received AT TIME ZONE 'UTC' AS date_received,s.name AS supplier_name" },
 };
 export function createPurchasingRepository(poolProvider) {
   async function detail(type, id, client = poolProvider()) {
@@ -19,7 +19,7 @@ export function createPurchasingRepository(poolProvider) {
       b.batch_no,to_char(b.expiry_date,'YYYY-MM-DD') AS expiry_date,b.selling_price::text,b.qty_on_hand
       FROM stock_in_items i JOIN batches b ON b.batch_id=i.batch_id JOIN products p ON p.product_id=b.product_id
       WHERE i.stock_in_id=$1 ORDER BY i.item_id`, [id])).rows;
-    if (type !== 'suppliers') record.history = (await client.query(`SELECT l.user_id,u.username,l.action,l.logged_at FROM activity_logs l
+    if (type !== 'suppliers') record.history = (await client.query(`SELECT l.user_id,u.username,l.action,l.logged_at AT TIME ZONE 'UTC' AS logged_at FROM activity_logs l
       JOIN users u ON u.user_id=l.user_id WHERE l.module=$1 AND l.action IN ($2,$3) ORDER BY l.logged_at,l.log_id`,
     [type === 'orders' ? 'purchase_orders' : 'stock_in', `${type}.created:${id}`, `${type}.approved:${id}`])).rows;
     return record;
@@ -29,11 +29,12 @@ export function createPurchasingRepository(poolProvider) {
     async list(type, query) {
       const { table, key, search, projection } = types[type];
       const join = type === 'suppliers' ? '' : 'JOIN suppliers s ON s.supplier_id=t.supplier_id';
+      const decisionFilter = type === 'suppliers' ? '' : "AND ($4='all' OR ($4='pending' AND t.approved_by IS NULL) OR ($4='approved' AND t.approved_by IS NOT NULL))";
       const result = await poolProvider().query(`WITH filtered AS (SELECT ${projection} FROM ${table} t ${join}
-        WHERE strpos(lower(${search}),lower($1))>0)
+        WHERE strpos(lower(${search}),lower($1))>0 ${decisionFilter})
         SELECT (SELECT count(*)::int FROM filtered) AS total,
         coalesce((SELECT json_agg(r) FROM (SELECT * FROM filtered ORDER BY ${key} DESC LIMIT $2 OFFSET $3) r),'[]'::json) AS data`,
-      [query.q, query.limit, (query.page - 1) * query.limit]);
+      [query.q, query.limit, (query.page - 1) * query.limit, ...(type === 'suppliers' ? [] : [query.status ?? 'all'])]);
       return { ...result.rows[0], page: query.page, limit: query.limit };
     },
     createSupplier: (client, data) => insertWithId(client,

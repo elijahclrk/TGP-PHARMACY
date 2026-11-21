@@ -10,6 +10,11 @@ import Pos from './pages/Pos'
 import Reports from './pages/Reports'
 import Users from './pages/Users'
 import AuditLogs from './pages/AuditLogs'
+import Alerts from './pages/Alerts'
+import ReorderThresholds from './pages/ReorderThresholds'
+import Approvals from './pages/Approvals'
+import ControlledWorkflows from './pages/ControlledWorkflows'
+import Notifications from './pages/Notifications'
 
 function Protected({ role, management, children }) {
   const { user } = useAuth()
@@ -25,6 +30,12 @@ function AppRoutes() {
     <Route path="/login" element={<Login />} />
     <Route path="/products" element={<Protected><Products /></Protected>} />
     <Route path="/inventory" element={<Protected><Inventory /></Protected>} />
+    <Route path="/alerts" element={<Protected><Alerts /></Protected>} />
+    <Route path="/notifications" element={<Protected role="admin"><Notifications /></Protected>} />
+    <Route path="/reorder-thresholds" element={<Protected role="admin"><ReorderThresholds /></Protected>} />
+    <Route path="/approvals" element={<Protected management><Approvals /></Protected>} />
+    <Route path="/adjustments" element={<Protected><ControlledWorkflows kind="adjustments" /></Protected>} />
+    <Route path="/returns" element={<Protected><ControlledWorkflows kind="returns" /></Protected>} />
     <Route path="/pos" element={<Protected><Pos /></Protected>} />
     <Route path="/reports" element={<Protected management><Reports /></Protected>} />
     <Route path="/users" element={<Protected role="admin"><Users /></Protected>} />
