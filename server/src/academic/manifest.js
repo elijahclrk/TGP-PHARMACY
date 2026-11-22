@@ -54,5 +54,8 @@ export function readAcademicConfig(settings,now=Date.now(),{operatorSetup=false}
  if(!Number.isInteger(port)||port<1||port>65535||!Number.isInteger(ttl)||ttl<60||ttl>3600||!Number.isInteger(max)||max<1||max>3)refuse();
  const proxies=(settings.ACADEMIC_DEMO_TRUSTED_PROXY_CIDRS||'').split(',').filter(Boolean);
  if(proxies.length>8||proxies.some(c=>{const[ip,bits]=c.split('/');const v=isIP(ip);return !v||!/^\d+$/.test(bits||'')||Number(bits)<1||Number(bits)>(v===4?32:128);}))refuse();
- return Object.freeze({document,publicKey:settings.ACADEMIC_DEMO_PUBLIC_KEY_B64,url:url.toString(),origin:origin.origin,port,ttl,max,secret:settings.JWT_SECRET,proxies:Object.freeze(proxies)});
+ const edge=settings.ACADEMIC_DEMO_HTTPS_MODE;
+ if(edge!==undefined&&edge!=='railway-edge')refuse();
+ if(edge&&(proxies.length||origin.port||!/^[a-z0-9-]+\.up\.railway\.app$/.test(origin.hostname)))refuse();
+ return Object.freeze({document,publicKey:settings.ACADEMIC_DEMO_PUBLIC_KEY_B64,url:url.toString(),origin:origin.origin,port,ttl,max,secret:settings.JWT_SECRET,proxies:Object.freeze(proxies),railwayEdge:edge==='railway-edge'});
 }

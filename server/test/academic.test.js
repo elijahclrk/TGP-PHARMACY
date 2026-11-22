@@ -10,6 +10,7 @@ import {listenForFetch} from '../testing/local-http.mjs';
 import {packagedWorkflowFixture} from './support/packaged-workflow-fixture.js';
 import {pathToFileURL} from 'node:url';
 import {join} from 'node:path';
+import {request as httpRequest} from 'node:http';
 
 test('academic signed config rejects wrong targets, aliases, fallback, expired and tampered authorization before connecting',async()=>{
  const f=await academicFixture();assert(readAcademicConfig(f.settings));
@@ -43,6 +44,32 @@ test('academic HTTP boundary requires HTTPS from explicitly trusted proxy and pr
  }finally{await new Promise(r=>server.close(r));}
  const untrusted={...f.config,proxies:[]},u=await verifiedAcademicContext(untrusted,f.pool),s=await listenForFetch(createAcademicApplication(u));try{assert.equal((await fetch('http://127.0.0.1:'+s.address().port+'/api/auth/me',{headers:{'X-Forwarded-Proto':'https','X-Forwarded-For':'1.2.3.4'}})).status,503);}finally{await new Promise(r=>s.close(r));}
 });
+test('Railway edge mode pins Host and Origin without trusting forwarding headers',async()=>{
+ const f=await academicFixture(),origin='https://demo.up.railway.app';
+ const settings={...f.settings,CLIENT_ORIGIN:origin,ACADEMIC_DEMO_HTTPS_MODE:'railway-edge',ACADEMIC_DEMO_TRUSTED_PROXY_CIDRS:''};
+ const config=readAcademicConfig(settings);
+ assert.throws(()=>readAcademicConfig({...settings,CLIENT_ORIGIN:'https://external.example'}),/REFUSED/);
+ assert.throws(()=>readAcademicConfig({...settings,ACADEMIC_DEMO_TRUSTED_PROXY_CIDRS:'127.0.0.1/32'}),/REFUSED/);
+ const app=createAcademicApplication(await verifiedAcademicContext(config,f.pool));
+ assert.equal(app.get('trust proxy'),false);
+ const server=await listenForFetch(app);
+ const send=(path,headers={},method='GET')=>new Promise((resolve,reject)=>{
+  const req=httpRequest({hostname:'127.0.0.1',port:server.address().port,path,headers,method},res=>{
+   res.resume();res.on('end',()=>resolve(res));
+  });req.on('error',reject);req.end();
+ });
+ try{
+  const host='demo.up.railway.app';
+  assert.equal((await send('/api/health')).statusCode,200);
+  const allowed=await send('/api/auth/me',{Host:host,'X-Forwarded-Proto':'http','X-Forwarded-Host':'evil.invalid','X-Forwarded-For':'1.2.3.4'});
+  assert.equal(allowed.statusCode,401);
+  assert(allowed.headers['strict-transport-security']);
+  assert.equal((await send('/api/auth/me',{Host:'evil.invalid','X-Forwarded-Host':host,'X-Forwarded-Proto':'https'})).statusCode,421);
+  assert.equal((await send('/api/auth/login',{Host:host,Origin:'https://evil.invalid','X-Forwarded-Proto':'https','X-TGP-Request':'1'},'POST')).statusCode,403);
+  assert.equal((await send('/api/auth/login',{Host:host,Origin:origin},'POST')).statusCode,403);
+ }finally{await new Promise(r=>server.close(r));}
+});
+
 test('dedicated academic startup refuses missing config and normal production guards remain closed',()=>{
  const env={...process.env,NODE_ENV:'production',DATABASE_URL:'postgresql://blocked:synthetic@production.invalid/never_connect',JWT_SECRET:'synthetic-test-secret-'.repeat(4)};
  const r=spawnSync(process.execPath,['src/academic-server.js'],{env,encoding:'utf8'});assert.equal(r.status,1);assert.match(r.stderr,/refused/);assert(!r.stderr.includes('postgresql:'));

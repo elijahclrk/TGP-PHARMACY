@@ -263,6 +263,17 @@ explicit reviewed renewal; immutable financial/policy history is not rewritten.
 
 ## Railway configuration: separate approval required
 
+For a dedicated service reachable publicly only through Railway HTTP ingress,
+set `ACADEMIC_DEMO_HTTPS_MODE` to `railway-edge` and leave
+`ACADEMIC_DEMO_TRUSTED_PROXY_CIDRS` unset. Railway enforces HTTPS at the public
+edge. Express leaves proxy trust disabled and checks the raw Host against the
+exact configured Railway HTTPS origin, rejects a supplied foreign Origin,
+and retains Secure cookies and route CSRF checks. Keep TCP Proxy disabled and
+keep untrusted services out of the Railway environment, since private networking
+can reach the container without passing through the public edge. Host alone
+does not authenticate the edge. The direct TLS and verified CIDR modes remain
+available when Railway edge mode is unset.
+
 For the exact academic database and restricted SQL identity, an optional signed
 `target.managedPostgresDigest` permits the reviewed Neon-managed `postgres`
 access. Collect the candidate hash with the operator CLI action

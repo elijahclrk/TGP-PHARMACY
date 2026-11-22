@@ -59,17 +59,32 @@ app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: { directives: {
   imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
 } } }));
+if(academic){
+ const {config:runtime}=requireAcademic(academic.capability,provider);
+ if(runtime.railwayEdge){
+  app.set('trust proxy',false);
+  const host=new URL(runtime.origin).host;
+  app.use((req,res,next)=>{
+   // Railway public HTTP ingress provides TLS. Host is a routing check,
+   // never evidence of TLS or authentication. Ignore forwarding headers.
+   if(req.method==='GET'&&req.path==='/api/health')return next();
+   if(req.headers.host!==host)return res.sendStatus(421);
+   if(req.headers.origin!==undefined&&req.headers.origin!==runtime.origin)return res.sendStatus(403);
+   next();
+  });
+ }
+}
 app.use(cors({ origin: config.origin, credentials: true }));
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 
 if(academic){
  const {config:runtime}=requireAcademic(academic.capability,provider);
- app.set('trust proxy',runtime.proxies.length?runtime.proxies:false);
+ app.set('trust proxy',!runtime.railwayEdge&&runtime.proxies.length?runtime.proxies:false);
  let inFlight=0,exports=0;
  app.use((req,res,next)=>{
   try{requireAcademic(academic.capability,provider);}catch{return res.status(503).json({success:false,message:'Academic demo authorization unavailable.'});}
-  if(req.path!=='/api/health'&&!req.secure)return res.status(503).json({success:false,message:'HTTPS is required for this academic demo.'});
+  if(req.path!=='/api/health'&&!runtime.railwayEdge&&!req.secure)return res.status(503).json({success:false,message:'HTTPS is required for this academic demo.'});
   if(req.path.startsWith('/api/')&&req.path!=='/api/health'){
    const exporting=req.path.endsWith('/export')||(req.path==='/api/exchanges/report'&&req.query.format);
    if(inFlight>=8||(exporting&&exports>=1))return res.status(503).json({success:false,message:'Academic demo capacity is busy. Retry shortly.'});
