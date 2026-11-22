@@ -132,7 +132,7 @@ test('PostgreSQL authentication integration', { skip: process.env.RUN_AUTH_DB_TE
     await t.test('current database role and status override existing session access', async () => {
       const manager = await repository.findByUsername('manager_test');
       await client.query("UPDATE users SET role='employee' WHERE user_id=$1", [manager.user_id]);
-      assert.equal((await request('/dashboard/manager', { cookie: managerCookie })).status, 403);
+      assert.equal((await request('/dashboard/manager', { cookie: managerCookie })).status, 401);
       await client.query("UPDATE users SET role='manager',status='inactive' WHERE user_id=$1", [manager.user_id]);
       assert.equal((await request('/me', { cookie: managerCookie })).status, 401);
       await client.query("UPDATE users SET status='active' WHERE user_id=$1", [manager.user_id]);

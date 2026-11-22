@@ -16,6 +16,7 @@ export const productReportQuery = z.object({ ...range,
 }).strict().refine(withinYear);
 export const emptyQuery = z.object({}).strict();
 export const detailReportQuery = z.object({...range,
+  receipt:z.string().trim().max(200).default(''),
   category:z.string().trim().max(200).default(''),
   max_units:z.string().regex(/^\d{1,6}$/).transform(Number).default(0),
 }).strict().refine(withinYear);

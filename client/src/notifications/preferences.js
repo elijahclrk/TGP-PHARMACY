@@ -1,4 +1,5 @@
-import {useSyncExternalStore} from 'react'
+import {useEffect,useState,useSyncExternalStore} from 'react'
+import {requestJson} from '../auth/api'
 
 const defaults=Object.freeze({low_stock:true,upcoming_expiry:true})
 export const preferenceKey=userId=>`tgp.dashboard-reminders.v1.${userId}`
@@ -19,6 +20,11 @@ export function savePreferences(userId,preferences){
 const subscribe=listener=>{window.addEventListener(changed,listener);window.addEventListener('storage',listener);return()=>{window.removeEventListener(changed,listener);window.removeEventListener('storage',listener)}}
 export function useNotificationPreferences(user){
   const enabled=user?.role==='admin'&&Number.isInteger(user.user_id)
+  const [server,setServer]=useState(null)
+  useEffect(()=>{if(!enabled)return;let active=true
+    async function refresh(){try{const a=await requestJson('/operations/availability');if(a.data?.preferences){const r=await requestJson('/operations/notification-preferences');if(active)setServer({low_stock:r.data.low_stock_dashboard,upcoming_expiry:r.data.upcoming_expiry_dashboard})}}catch{/* Optional reminders never change mandatory safety behavior. */}}
+    refresh();window.addEventListener('focus',refresh);window.addEventListener(changed,refresh);return()=>{active=false;window.removeEventListener('focus',refresh);window.removeEventListener(changed,refresh)}
+  },[enabled,user?.user_id])
   const raw=useSyncExternalStore(subscribe,()=>{try{return enabled?localStorage.getItem(preferenceKey(user.user_id)):null}catch{return null}},()=>null)
-  return decodePreferences(raw)
+  return server||decodePreferences(raw)
 }

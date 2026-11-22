@@ -12,3 +12,18 @@ export async function createAccount(repository, actorId, data, bootstrap = false
     return user;
   });
 }
+export async function updateAccount(repository,actorId,id,data){
+ const patch={...data};if(patch.password){patch.password_hash=await hashPassword(patch.password);delete patch.password;}
+ return repository.transaction(async client=>{
+  await repository.requireActiveAdmin(client,actorId);
+  const target=await repository.findById(id,client);
+  if(!target)throw Object.assign(Error('Account not found'),{status:404});
+  // Existing Admin protection remains: no demotion, deactivation, promotion or
+  // credential takeover of the only owner through ordinary staff management.
+  if(target.role==='admin'||id===actorId)throw Object.assign(Error('Administrator account changes require a separate owner procedure'),{status:403});
+  const updated=await repository.editUser(client,id,patch);
+  await repository.audit(client,actorId,`account.updated:${id}`);
+  if(patch.password_hash)await repository.audit(client,actorId,`account.credentials_updated:${id}`);
+  return updated;
+ });
+}

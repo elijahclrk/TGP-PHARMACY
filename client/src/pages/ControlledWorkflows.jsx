@@ -8,8 +8,9 @@ import WorkflowGate from '../workflows/WorkflowGate'
 import WorkflowDetails from '../workflows/WorkflowDetails'
 import {useAuth} from '../auth/auth-context'
 import BatchPicker from '../workflows/BatchPicker'
+import Exchanges from '../workflows/Exchanges'
 
-export default function ControlledWorkflows({kind}){return <Workspace><PageHeading title={kind==='returns'?'Customer returns':'Inventory adjustments'} description="Requests require independent management review. Inventory changes are recorded atomically."/><WorkflowGate><WorkflowPage key={kind} kind={kind}/></WorkflowGate></Workspace>}
+export default function ControlledWorkflows({kind}){return <Workspace><PageHeading title={kind==='returns'?'Customer returns':'Inventory adjustments'} description="Requests require independent management review. Inventory changes are recorded atomically."/><WorkflowGate><WorkflowPage key={kind} kind={kind}/>{kind==='returns'&&<Exchanges/>}</WorkflowGate></Workspace>}
 function WorkflowPage({kind}){
   const {user}=useAuth(),storageKey=`tgp-workflow:${user.user_id}:${kind}`
   const [revision,setRevision]=useState(0),[status,setStatus]=useState('all'),[page,setPage]=useState(1),[selected,setSelected]=useState(null)

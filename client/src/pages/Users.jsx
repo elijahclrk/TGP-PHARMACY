@@ -39,7 +39,7 @@ function AdminUsers({ currentUser }) {
       </tr>)}</tbody></table>}
       {!result.loading && !result.error && result.data && <Paging data={result.data} onPage={page => setQuery(current => ({ ...current, page }))} />}
     </section>
-    {selected && <AccountDetails key={selected} id={selected} revision={revision} currentUserId={currentUser.user_id} onClose={() => setSelected(null)} onDeactivated={() => { setNotice('Account deactivated. Active sessions revoked.'); refresh() }} />}
+    {selected && <AccountDetails key={selected} id={selected} revision={revision} currentUserId={currentUser.user_id} onClose={() => setSelected(null)} onUpdated={()=>{setNotice('Account updated. Active sessions revoked.');refresh()}} onDeactivated={() => { setNotice('Account deactivated. Active sessions revoked.'); refresh() }} />}
     <section className="surface mt-8"><h2 className="font-semibold">Access follows the assigned role.</h2><p className="mt-3 text-sm text-slate-600">Admin manages Employee and Manager accounts. Employees have no user-management or sales-report access. Existing account history is retained.</p></section>
   </Workspace>
 }

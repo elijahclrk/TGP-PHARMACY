@@ -5,9 +5,10 @@ import {fieldClass,secondaryClass,Paging} from '../inventory/shared'
 import {php,manilaDates} from './format'
 import SalesChart from './SalesChart'
 import {downloadReport} from '../auth/api'
+import HistoricalTransaction from './HistoricalTransaction'
 
 const definitions={
-  transactions:{label:'Transaction history',columns:[['receipt_no','Receipt'],['business_time','Time (Manila)'],['cashier','Cashier'],['sales_amount','Paid sales',php],['cash_tendered','Cash tendered',php],['change_due','Change',php],['return_requests','Return requests'],['benefit_type','Benefit'],['gross_amount','Snapshot gross',php],['discount_amount','Discount',php],['vat_removed_amount','VAT removed',php],['vat_amount','VAT charged',php]]},
+  transactions:{label:'Transaction history',columns:[['receipt_no','Receipt'],['business_time','Time (Manila)'],['cashier','Cashier'],['item_count','Distinct products'],['sales_amount','Paid sales',php],['cash_tendered','Cash tendered',php],['change_due','Change',php],['return_requests','Return requests'],['benefit_type','Benefit'],['gross_amount','Snapshot gross',php],['discount_amount','Discount',php],['vat_removed_amount','VAT removed',php],['vat_amount','VAT charged',php]]},
   categories:{label:'Sales by category',columns:[['current_category','Current category'],['units','Units sold'],['transactions','Transactions'],['sales_amount','Paid sales',php]]},
   'best-selling':{label:'Best-selling by category',columns:[['current_category','Current category'],['category_rank','Rank in category'],['name','Product'],['units','Units sold'],['sales_amount','Paid sales',php]]},
   'slow-moving':{label:'Slow-moving products',columns:[['current_category','Current category'],['category_rank','Rank in category'],['name','Product'],['units','Units sold'],['sales_amount','Paid sales',php]]},
@@ -20,16 +21,17 @@ const definitions={
   profit:{label:'Gross profit estimate',columns:[]},
 }
 export default function ReportPanel() {
+  const [selected,setSelected]=useState(null)
   const {user}=useAuth();const admin=user.role==='admin';const {today,monday}=manilaDates()
   const [kind,setKind]=useState('sales')
-  const [filters,setFilters]=useState({from:monday,to:today,period:'day',page:1,max_units:'0',category:''})
+  const [filters,setFilters]=useState({from:monday,to:today,period:'day',page:1,max_units:'0',category:'',receipt:''})
   const [exportState,setExportState]=useState({busy:false,error:''})
   const [revision,setRevision]=useState(0)
   const details=['transactions','categories','best-selling','slow-moving','returns']
   const dated=['sales','products','profit',...details].includes(kind)
   const paged=['products','low-stock','near-expiry'].includes(kind)
   const ranked=['best-selling','slow-moving'].includes(kind)
-  const params={...(dated?{from:filters.from,to:filters.to}:{}),...(kind==='sales'?{period:filters.period}:{}),...(kind==='slow-moving'?{max_units:filters.max_units}:{}),...(ranked?{category:filters.category}:{}),...(paged?{page:filters.page,limit:20}:{})}
+  const params={...(dated?{from:filters.from,to:filters.to}:{}),...(kind==='transactions'?{receipt:filters.receipt}:{}),...(kind==='sales'?{period:filters.period}:{}),...(kind==='slow-moving'?{max_units:filters.max_units}:{}),...(ranked?{category:filters.category}:{}),...(paged?{page:filters.page,limit:20}:{})}
   const result=useInventory(`/reports/${kind}?${new URLSearchParams(params)}`,revision)
   const data=result.data
   const options=admin?['sales','transactions','products','categories','best-selling','slow-moving','returns','low-stock','near-expiry','valuation','profit']:['sales','low-stock','near-expiry']
@@ -45,6 +47,7 @@ export default function ReportPanel() {
       {dated&&<><label className="text-sm font-medium">From (Manila)<input name="from" type="date" required defaultValue={filters.from} className={`${fieldClass} mt-2`}/></label><label className="text-sm font-medium">Through (Manila)<input name="to" type="date" required defaultValue={filters.to} className={`${fieldClass} mt-2`}/></label></>}
       {kind==='sales'&&<label className="text-sm font-medium">Group by<select name="period" defaultValue={filters.period} className={`${fieldClass} mt-2`}><option value="day">Daily</option><option value="week">Weekly (Monday start)</option>{admin&&<option value="month">Monthly</option>}</select></label>}
       <button className={secondaryClass}>Apply / refresh</button>
+      {kind==='transactions'&&<label>Receipt search<input className={fieldClass} name="receipt" maxLength={200} defaultValue={filters.receipt}/></label>}
       {ranked&&<label>Category (exact current label)<input name="category" maxLength={200} defaultValue={filters.category} placeholder="All categories" className={fieldClass}/></label>}
       {kind==='slow-moving'&&<label>Maximum units sold in range<input name="max_units" type="number" min="0" max="999999" step="1" defaultValue={filters.max_units} className={fieldClass}/></label>}
       {dated&&<p className="w-full text-xs text-slate-500">Inclusive date range, maximum 366 days. Weekly/monthly groups include only dates inside the selected range.</p>}
@@ -63,9 +66,10 @@ export default function ReportPanel() {
       {kind==='valuation'&&<div className="rounded-sm bg-green-50 p-5"><p className="text-xl font-bold">Cost valuation: {php(data.cost_value)}</p><p className="mt-2 text-sm">{data.unverified_batches} batches have unknown quantities or unverified costs. Includes expired/on-expiry stock at recorded cost, without write-downs.</p></div>}
       {kind==='profit'?<div className="rounded-sm border border-slate-200 bg-white p-6"><h2 className="text-xl font-semibold">Gross profit estimate</h2><dl className="mt-4 grid gap-4 sm:grid-cols-2">{[['Paid sales',php(data.sales_amount)],['Verified batch cost',php(data.cost_amount)],['Gross profit',php(data.gross_profit)],['Gross margin',data.gross_margin_percent===null?'Unavailable':`${data.gross_margin_percent}%`]].map(([label,value])=><div key={label}><dt className="text-sm text-slate-500">{label}</dt><dd className="mt-1 text-xl font-semibold">{value}</dd></div>)}</dl><p className="mt-5 text-sm text-slate-600">{data.unverified_lines} sale lines lack an approved cost basis, including discounted lines pending accounting review. Estimates exclude operating expenses and return adjustments; they are not net profit.</p>{data.lines===0&&<p className="mt-4">No qualifying sales in this range.</p>}</div>:<div className="overflow-hidden rounded-sm border border-slate-200 bg-white">
         <h2 className="p-5 font-semibold">{kind==='sales'?'Sales by period':definitions[kind].label}</h2>
-        {!data.data?.length?<p className="p-10 text-center text-slate-500">No matching report records.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50"><tr>{definitions[kind].columns.map(([key,label])=><th key={key} className="whitespace-nowrap p-4">{label}</th>)}</tr></thead><tbody>{data.data.map((row,index)=><tr key={index} className="border-t border-slate-100">{definitions[kind].columns.map(([key,,format])=><td key={key} className="p-4">{format?format(row[key]):row[key]??'Not set'}</td>)}</tr>)}</tbody></table></div>}
+        {!data.data?.length?<p className="p-10 text-center text-slate-500">No matching report records.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50"><tr>{definitions[kind].columns.map(([key,label])=><th key={key} className="whitespace-nowrap p-4">{label}</th>)}</tr></thead><tbody>{data.data.map((row,index)=><tr key={index} className="border-t border-slate-100">{definitions[kind].columns.map(([key,,format])=><td key={key} className="p-4">{kind==='transactions'&&key==='receipt_no'?<button className="text-red-700 underline" onClick={()=>setSelected(row.sale_id)}>{row[key]}</button>:format?format(row[key]):row[key]??'Not set'}</td>)}</tr>)}</tbody></table></div>}
         {paged&&<Paging data={data} onPage={page=>setFilters(current=>({...current,page}))}/>}
       </div>}
     </>}
+    {selected&&<HistoricalTransaction id={selected} onClose={()=>setSelected(null)}/>}
   </section>
 }

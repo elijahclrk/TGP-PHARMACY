@@ -3,7 +3,7 @@ import { requireAuth, requireRole, requireTrustedRequest } from '../middleware/a
 import { parseInput, idValue } from '../services/inventory-validation.js';
 import { supplierCreate, supplierEdit, orderCreate, receivingCreate, approvalInput, purchasingQuery } from '../services/purchasing-validation.js';
 
-export function createPurchasingRouter({ config, sessions, authRepository, repository }) {
+export function createPurchasingRouter({ config, sessions, authRepository, repository,operations }) {
   const router = Router();
   // Scope middleware so unrelated inventory routes retain employee access.
   router.use(['/suppliers', '/purchase-orders', '/stock-ins'],
@@ -14,6 +14,7 @@ export function createPurchasingRouter({ config, sessions, authRepository, repos
     return authRepository.transaction(async client => {
       const actor = await authRepository.findById(req.auth.user.user_id, client);
       if (actor?.status !== 'active' || !['admin', 'manager'].includes(actor.role)) throw Object.assign(new Error('Access denied'), { status: 403 });
+      if(['contact_person','email','status'].some(f=>Object.hasOwn(req.body,f))&&(!operations||!await operations.schemaReady(client)))throw Object.assign(Error('Extended supplier fields unavailable'),{status:503});
       const row = await work(client, actor.user_id);
       await authRepository.audit(client, actor.user_id, `${action}:${row[key]}`, module);
       return row;

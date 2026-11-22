@@ -9,7 +9,7 @@ export function demoPlan(args){
   const plan=[['local-postgres.mjs','verify',root]];
   // Reset is a NEW owned schema + deterministic synthetic seed + browser checks.
   // It never deletes/reseeds an existing schema or overwrites retained evidence.
-  if(action!=='verify')plan.push(['batch4-uat.mjs',root,'--built-client',...(action==='start'?['--review']:[])]);
+  if(action!=='verify')plan.push(['batch4-uat.mjs',root,'--built-client','--benefits','--exchanges','--operations','--demo',...(action==='start'?['--review']:[])]);
   return plan;
 }
 export async function runDemo(args,execute=runChild){for(const command of demoPlan(args))await execute(command);}

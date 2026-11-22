@@ -13,10 +13,15 @@ import {disposableConfig,verifyDisposableClient} from '../test/support/disposabl
 import {hashPassword} from '../src/services/passwords.js';
 import {withProductionFrontend} from './local-demo.mjs';
 import {seedBenefits} from '../test/support/benefit-fixture.js';
+import {exchangeMigration,syntheticExchangePolicy} from '../test/support/exchange-fixture.js';
 const root=await realpath(process.argv[2]),temporary=await realpath(tmpdir());
-const options=process.argv.slice(3);assert(options.every(option=>['--review','--built-client','--benefits'].includes(option)),'Unsupported local UAT option');
+const options=process.argv.slice(3);assert(options.every(option=>['--review','--built-client','--benefits','--exchanges','--operations','--demo'].includes(option)),'Unsupported local UAT option');
+const operations=options.includes('--operations');
 const benefits=options.includes('--benefits');
+const exchanges=options.includes('--exchanges');
 const builtClient=options.includes('--built-client');
+const demo=options.includes('--demo');
+assert(!demo||(benefits&&exchanges&&operations&&builtClient),'Demo requires all local capabilities and the production frontend bundle');
 assert(root.startsWith(temporary+sep)&&root.slice(temporary.length+1).startsWith('tgp-pg-'));
 const local=JSON.parse(await readFile(join(root,'private.json'),'utf8'));
 assert(local.host==='127.0.0.1'&&local.port!==5432&&local.database.startsWith('tgp_disposable_'));
@@ -35,12 +40,15 @@ await c.query('ROLLBACK');
 const schema='tgp_uat_'+randomUUID().replaceAll('-',''),runDir=join(root,schema);await mkdir(runDir);await mkdir(join(runDir,'screenshots'));
 const users=[['employee',101,'employee'],['manager',102,'manager'],['admin',103,'admin'],['pharmacist',104,'manager'],['verifier',105,'admin']].map(([label,id,role])=>({label,id,role,username:'uat_'+label,password:randomBytes(24).toString('hex')}));
 const manifest={schema,runDir,database:local.database,databasePort:local.port,users,benefits,apiPort:await freePort(),frontendPort:await freePort(),jwt:randomBytes(48).toString('hex'),migrationVersions:[],migrationChecksums:{}};
+manifest.exchanges=exchanges;
+manifest.operations=operations;
+if(exchanges)manifest.exchangePolicy=syntheticExchangePolicy();
 const manifestPath=join(runDir,'private-uat.json');
 await writeFile(manifestPath,JSON.stringify(manifest));
 try{
   await c.query('BEGIN');await c.query('CREATE SCHEMA '+schema);await c.query('SET LOCAL search_path TO '+schema);
   await c.query('CREATE TABLE tgp_schema_migrations(version text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP)');
-  for(const [i,file]of [...baseline,'proposed/003_return_sale_item_link.sql','proposed/batch1/007_decision_workflows.sql','proposed/batch1/008_return_dispositions.sql','proposed/batch1/009_discount_financial_snapshots.sql',...(benefits?['proposed/batch10/011_local_benefit_checkout.sql']:[])].entries()){
+  for(const [i,file]of [...baseline,'proposed/003_return_sale_item_link.sql','proposed/batch1/007_decision_workflows.sql','proposed/batch1/008_return_dispositions.sql','proposed/batch1/009_discount_financial_snapshots.sql',...(benefits?['proposed/batch10/011_local_benefit_checkout.sql']:[]),...(exchanges?[exchangeMigration]:[]),...(operations?['proposed/batch7/010_in_app_notification_preferences.sql','proposed/batch14/013_operational_completion.sql']:[])].entries()){
     const bytes=await readFile(new URL('../database/migrations/'+file,import.meta.url));let sql=bytes.toString().replace(/--[^\n]*/g,'').trim();
     if(i){assert(sql.startsWith('BEGIN;')&&sql.endsWith('COMMIT;'));sql=sql.slice(6,-7).replace(/^\s*SET LOCAL search_path = public;/,'');}
     assert(!/\bpublic\s*\./i.test(sql));await c.query(sql);
@@ -65,10 +73,11 @@ try{
     VALUES(901,104,105,'SYNTHETIC TEST ONLY verified pharmacist fixture',CURRENT_TIMESTAMP-interval '1 hour',CURRENT_TIMESTAMP+interval '1 day');
     INSERT INTO activity_logs(log_id,user_id,action,module,logged_at) VALUES(1,102,'orders.created:501','purchase_orders',CURRENT_TIMESTAMP),(2,102,'receiving.created:601','stock_in',CURRENT_TIMESTAMP);`);
   if(benefits)await seedBenefits(c,{users:{employee:101,manager:102,admin:103,pharmacist:104},products:[211,212,213,214,215,216],batches:900});
+  if(exchanges)await c.query("INSERT INTO products(product_id,name,generic_name,category,unit_price) VALUES(221,'SYNTHETIC replacement medicine','Synthetic generic','Test only',140); INSERT INTO batches(batch_id,product_id,batch_no,expiry_date,qty_on_hand,cost_price) VALUES(321,221,'SYNTHETIC-REPLACEMENT',(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date+30,30,60)");
   await c.query('COMMIT');
   // Verify the installed UAT ledger before any application activation.
   await c.query('BEGIN READ ONLY');await c.query('SET LOCAL search_path TO '+schema);
-  const installed=(await c.query('SELECT version,checksum FROM tgp_schema_migrations')).rows;assert.equal(installed.length,benefits?8:7);
+  const installed=(await c.query('SELECT version,checksum FROM tgp_schema_migrations')).rows;assert.equal(installed.length,7+Number(benefits)+Number(exchanges)+2*Number(operations));
   for(const entry of installed)assert.equal(entry.checksum,manifest.migrationChecksums[entry.version]);
   assert.equal((await c.query("SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema=$1 AND table_name='sales' AND column_name='financial_snapshot_version'",[schema])).rows[0].n,1);
   await c.query('ROLLBACK');
@@ -76,8 +85,11 @@ try{
 await writeFile(manifestPath,JSON.stringify(manifest));
 const origin='http://127.0.0.1:'+manifest.frontendPort;
 const childEnv={...process.env,...settings,DATABASE_URL:url.toString(),PGOPTIONS:'-c search_path='+schema,NODE_EXTRA_CA_CERTS:join(root,'tls','ca.crt'),NODE_ENV:'development',JWT_SECRET:manifest.jwt,JWT_TTL_SECONDS:'3600',CLIENT_ORIGIN:origin,PORT:String(manifest.apiPort),CONTROLLED_WORKFLOWS_ENABLED:'true',RETURN_RESTOCK_ENABLED:'true',PRODUCT_IMAGES_ENABLED:'false'};
-const api=spawn(process.execPath,[fileURLToPath(new URL('./local-uat-app.mjs',import.meta.url)),manifestPath],{env:childEnv,cwd:new URL('../',import.meta.url),windowsHide:true,stdio:['ignore','pipe','pipe']});
-let apiLog='';api.stdout.on('data',b=>{apiLog+=b;});api.stderr.on('data',b=>{apiLog+=b;});
+let apiLog='';
+function startApi(){const child=spawn(process.execPath,[fileURLToPath(new URL('./local-uat-app.mjs',import.meta.url)),manifestPath],{env:childEnv,cwd:new URL('../',import.meta.url),windowsHide:true,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>{apiLog+=b;});child.stderr.on('data',b=>{apiLog+=b;});return child;}
+async function stopApi(child){if(child.exitCode!==null||child.signalCode!==null)return;await new Promise((accept,reject)=>{const timer=setTimeout(()=>reject(Error('Local API stop could not be confirmed')),5000);child.once('exit',()=>{clearTimeout(timer);accept()});child.kill();});}
+async function awaitApi(){const until=Date.now()+20000;while(Date.now()<until){try{if((await fetch('http://127.0.0.1:'+manifest.apiPort+'/api/health')).ok)return;}catch{/* Wait for this loopback child only. */}await new Promise(r=>setTimeout(r,100));}throw Error('Local API did not start; inspect retained API log');}
+let api=startApi();
 const {createServer:createViteServer,build,preview}=await import(new URL('../../client/node_modules/vite/dist/node/index.js',import.meta.url));
 const clientRoot=fileURLToPath(new URL('../../client/',import.meta.url)),{default:base}=await import(new URL('../../client/vite.config.js',import.meta.url));
 let vite;
@@ -102,13 +114,14 @@ try{
     vite=await createViteServer({...base,configFile:false,root:clientRoot,cacheDir:join(runDir,'vite-cache'),server:{host:'127.0.0.1',port:manifest.frontendPort,strictPort:true,proxy}});
     await vite.listen();
   }
-  const until=Date.now()+20000;let ready=false;
-  while(Date.now()<until){try{const r=await fetch('http://127.0.0.1:'+manifest.apiPort+'/api/health');if(r.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}
-  assert(ready,'Local API did not start; inspect retained API log');
+  await awaitApi();
   console.log(JSON.stringify({uatSchema:schema,localOrigin:origin,frontendMode:manifest.frontendMode??'development',localOnly:true,tlsVerified:true,migrations:manifest.migrationVersions,flags:'local child only',runDir}));
-  const {runBrowser}=await import(benefits?'./batch10-browser.mjs':'./batch4-browser.mjs');
+  const {runBrowser}=await import(demo?'./batch15-browser.mjs':operations?'./batch14-browser.mjs':exchanges?'./batch13-browser.mjs':benefits?'./batch10-browser.mjs':'./batch4-browser.mjs');
   await runBrowser({root,manifest,origin});
   if(process.argv.slice(3).includes('--review')){
+    // Browser setup used real logins. Start a fresh local API process so human
+    // review has ordinary sessions/rate-limit capacity; never loosen the limiter.
+    if(demo){await stopApi(api);api=startApi();await awaitApi();console.log('Synthetic scenarios retained; local API restarted for human review. Automated cookies revoked; normal login limits unchanged.');}
     // Explicit local hands-on review only. Default automated runs still stop.
     // Credentials stay in the private ACL-protected manifest, never stdout.
     const {createInterface}=await import('node:readline');
@@ -120,5 +133,5 @@ try{
     });
     terminal.close();
   }
-}finally{await writeFile(join(runDir,'api.log'),apiLog);await vite?.close();api.kill();}
+}finally{await vite?.close();await stopApi(api);await writeFile(join(runDir,'api.log'),apiLog);}
 async function freePort(){return freeHttpPort();}

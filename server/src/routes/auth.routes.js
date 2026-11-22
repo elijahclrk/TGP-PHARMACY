@@ -3,10 +3,10 @@ import { rateLimit } from 'express-rate-limit';
 import { createAuthRepository } from '../repositories/auth.repository.js';
 import { getPool } from '../config/database.js';
 import { getAuthConfig } from '../config/auth.js';
-import { createSessions } from '../services/sessions.js';
+import { createSessions,accountSessionTag } from '../services/sessions.js';
 import { verifyPassword } from '../services/passwords.js';
-import { createAccount } from '../services/accounts.js';
-import { loginSchema, userSchema, validateBody, accountListQuery, accountId } from '../services/auth-validation.js';
+import { createAccount,updateAccount } from '../services/accounts.js';
+import { loginSchema, userSchema,accountEdit, validateBody, accountListQuery, accountId } from '../services/auth-validation.js';
 import { requireAuth, requireRole, requireTrustedRequest, publicUser } from '../middleware/auth.js';
 
 export function createAuthRouter({ config = getAuthConfig(), repository = createAuthRepository(getPool),
@@ -35,7 +35,7 @@ export function createAuthRouter({ config = getAuthConfig(), repository = create
     if (!accepted) return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     const previous = sessions.verify(req.cookies?.[cookieName]);
     if (previous) sessions.revoke(previous.id);
-    const session = sessions.issue(accepted.user_id);
+    const session = sessions.issue(accepted.user_id,accountSessionTag(accepted));
     res.cookie(cookieName, session.token, { ...cookieOptions, maxAge: config.ttl * 1000 });
     return res.json({ success: true, user: publicUser(accepted), expiresAt: session.expiresAt });
   });
@@ -89,6 +89,11 @@ export function createAuthRouter({ config = getAuthConfig(), repository = create
     if (!user) return res.status(404).json({ success: false, message: 'Account not found.' });
     sessions.revokeUser(id);
     res.json({ success: true, user: publicUser(user) });
+  });
+  router.patch('/users/:id',authenticate,requireRole('admin'),validateBody(accountEdit),async(req,res)=>{
+    const id=accountId.safeParse(req.params.id);if(!id.success||Object.keys(req.query).length)return res.status(400).json({success:false,message:'Invalid account request.'});
+    try{const user=await updateAccount(repository,req.auth.user.user_id,id.data,req.validated);sessions.revokeUser(id.data);res.json({success:true,user:publicUser(user)});}
+    catch(error){if(error.code==='23505')return res.status(409).json({success:false,message:'Username is unavailable.'});throw error;}
   });
   return router;
 }

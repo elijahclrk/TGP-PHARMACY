@@ -29,7 +29,7 @@ test('proposed restocking needs current professional authorization, independentl
 test('current PO/stock-in self-approval remains compatible with the Batch 2 policy', async () => {
   const repo=createPurchasingRepository(()=>{throw Error('Unexpected pool access');});
   for(const type of ['orders','receiving']) {
-    let qty=0,header={po_id:5,stock_in_id:5,created_by:2,received_by:2,approved_by:null,status:'pending'};
+    let qty=0,header={po_id:type==='orders'?5:null,stock_in_id:5,created_by:2,received_by:2,approved_by:null,status:'pending'};
     const client={async query(sql){
       if(sql.startsWith('SELECT * FROM purchase_orders')||sql.startsWith('SELECT * FROM stock_ins'))return {rows:[header]};
       if(sql.startsWith('SELECT * FROM stock_in_items'))return {rows:[{batch_id:3,item_id:1,quantity:2,unit_cost:'1'}]};

@@ -4,7 +4,7 @@ import { batchCreate, money } from './inventory-validation.js';
 const id = z.number().int().positive().max(2147483647);
 const text = z.string().trim().min(1).max(200);
 const optionalText = z.string().trim().max(500).nullable().optional();
-export const supplierCreate = z.object({ name: text, contact_no: optionalText, address: optionalText }).strict();
+export const supplierCreate = z.object({ name: text, contact_no: optionalText, address: optionalText,contact_person:optionalText,email:z.union([z.email(),z.literal(''),z.null()]).optional(),status:z.enum(['active','inactive']).nullable().optional() }).strict();
 export const supplierEdit = supplierCreate.partial().refine(data => Object.keys(data).length > 0);
 const quantity = id;
 const poLine = z.object({ product_id: id, quantity, unit_cost: money }).strict();

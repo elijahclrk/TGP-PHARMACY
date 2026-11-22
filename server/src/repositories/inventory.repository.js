@@ -2,7 +2,7 @@ import { insertWithId } from './auth.repository.js';
 import { businessTodaySql, nearExpiryThroughSql } from '../services/expiry-policy.js';
 
 const today = businessTodaySql;
-const aggregates = `SELECT p.product_id,p.name,p.generic_name,p.category,p.unit_price::text AS unit_price,p.reorder_level,
+const aggregates = `SELECT p.product_id,p.name,p.generic_name,p.category,p.unit_price::text AS unit_price,p.reorder_level,to_jsonb(p)->>'strength_dosage' AS strength_dosage,
   count(b.batch_id)::int AS batch_count,
   CASE WHEN count(b.batch_id) FILTER(WHERE b.qty_on_hand IS NULL)>0 THEN NULL
     ELSE coalesce(sum(b.qty_on_hand),0)::text END AS qty_on_hand,
@@ -51,10 +51,10 @@ export function createInventoryRepository(poolProvider) {
             OR ($3='expired' AND b.qty_on_hand>0 AND b.expiry_date<${today}))`, 'expiry_date NULLS LAST, batch_id');
     },
     insertProduct: (client, data) => insertWithId(client,
-      'INSERT INTO products(product_id,name,generic_name,category,unit_price,reorder_level) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(product_id) DO NOTHING RETURNING product_id,name,generic_name,category,unit_price::text,reorder_level',
-      [data.name, data.generic_name ?? null, data.category ?? null, data.unit_price, data.reorder_level ?? null]),
+      `INSERT INTO products(product_id,name,generic_name,category,unit_price,reorder_level${Object.hasOwn(data,'strength_dosage')?',strength_dosage':''}) VALUES($1,$2,$3,$4,$5,$6${Object.hasOwn(data,'strength_dosage')?',$7':''}) ON CONFLICT(product_id) DO NOTHING RETURNING product_id,name,generic_name,category,unit_price::text,reorder_level`,
+      [data.name, data.generic_name ?? null, data.category ?? null, data.unit_price, data.reorder_level ?? null,...(Object.hasOwn(data,'strength_dosage')?[data.strength_dosage]:[])]),
     async editProduct(client, id, data) {
-      const allowed = ['name', 'generic_name', 'category', 'unit_price', 'reorder_level'];
+      const allowed = ['name', 'generic_name', 'category', 'unit_price', 'reorder_level','strength_dosage'];
       const fields = allowed.filter(key => Object.hasOwn(data, key));
       const result = await client.query(`UPDATE products SET ${fields.map((key, i) => key + '=$' + (i + 2)).join(',')}
         WHERE product_id=$1 RETURNING product_id,name,generic_name,category,unit_price::text,reorder_level`, [id, ...fields.map(key => data[key])]);

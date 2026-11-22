@@ -49,12 +49,14 @@ export function createReportsRepository(poolProvider) {
       )`:'';
       const statements={
         transactions:`SELECT s.sale_id,s.receipt_no,to_char(s.local_time,'YYYY-MM-DD HH24:MI:SS') AS business_time,u.username AS cashier,
+          (SELECT count(DISTINCT b.product_id)::int FROM sale_items i JOIN batches b USING(batch_id) WHERE i.sale_id=s.sale_id) AS item_count,
           round(s.total_amount,2)::text AS sales_amount,round(p.amount_paid,2)::text AS cash_tendered,round(p.change_due,2)::text AS change_due,
           (SELECT count(*)::int FROM sale_returns r WHERE r.sale_id=s.sale_id) AS return_requests,
           to_jsonb(s)->>'benefit_type' AS benefit_type,to_jsonb(s)->>'gross_amount' AS gross_amount,
           to_jsonb(s)->>'discount_amount' AS discount_amount,to_jsonb(s)->>'vat_removed_amount' AS vat_removed_amount,
           to_jsonb(s)->>'vat_amount' AS vat_amount
-          FROM eligible s JOIN users u ON u.user_id=s.user_id JOIN payments p ON p.sale_id=s.sale_id ORDER BY s.local_time,s.sale_id`,
+          FROM eligible s JOIN users u ON u.user_id=s.user_id JOIN payments p ON p.sale_id=s.sale_id
+          WHERE ($3='' OR strpos(lower(s.receipt_no),lower($3))>0) ORDER BY s.local_time,s.sale_id`,
         categories:`SELECT p.category AS current_category,sum(i.quantity)::text AS units,count(DISTINCT s.sale_id)::int AS transactions,
           round(sum(${lineRevenue}),2)::text AS sales_amount FROM eligible s JOIN sale_items i ON i.sale_id=s.sale_id
           JOIN batches b ON b.batch_id=i.batch_id JOIN products p ON p.product_id=b.product_id GROUP BY p.category ORDER BY p.category NULLS LAST`,
@@ -70,7 +72,7 @@ export function createReportsRepository(poolProvider) {
           WHERE r.return_date>=$1::date AND r.return_date<=$2::date ORDER BY r.return_id`,
       };
       if(!Object.hasOwn(statements,kind))throw new Error('Unsupported report');
-      const values=[query.from,query.to,...(kind==='slow-moving'?[query.max_units,query.category??'']:kind==='best-selling'?[query.category??'']:[])];
+      const values=[query.from,query.to,...(kind==='transactions'?[query.receipt??'']:kind==='slow-moving'?[query.max_units,query.category??'']:kind==='best-selling'?[query.category??'']:[])];
       // One statement gives rows and reconciliation coverage a consistent snapshot.
       const result=await poolProvider().query(`${cohort}${performance}, details AS (${statements[kind]})
         SELECT coalesce((SELECT json_agg(d) FROM (SELECT * FROM details LIMIT 10001)d),'[]'::json) AS data,

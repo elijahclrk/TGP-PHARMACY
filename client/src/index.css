@@ -179,3 +179,11 @@ button:not(:disabled), select { cursor: pointer; }
   .ui-modal-body { padding: 0 20px 24px; }
 }
 @media (prefers-reduced-motion: no-preference) { .sidebar-link, .ui-button { transition: background-color .15s ease; } }
+@media print {
+  body:has(.print-transaction) > :not(dialog) { display: none !important; }
+  body:has(.print-transaction) { overflow: visible !important; }
+  dialog:has(.print-transaction) { position: static; display: block; width: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; overflow: visible; }
+  dialog:has(.print-transaction)::backdrop { display: none; }
+  dialog:has(.print-transaction) .ui-modal-header, .print-hidden { display: none !important; }
+  .print-transaction { color: black; }
+}

@@ -1,0 +1,31 @@
+import {Router} from 'express';
+import {z} from 'zod';
+import {requireAuth,requireRole,requireTrustedRequest} from '../middleware/auth.js';
+import {generateReportExport} from '../services/report-exports.js';
+import {uuid} from '../services/exchange-validation.js';
+const reportQuery=z.object({from:z.iso.date(),to:z.iso.date(),format:z.enum(['xlsx','pdf']).optional()}).strict().refine(q=>q.from<=q.to&&(Date.parse(q.to)-Date.parse(q.from))/86400000<366);
+export function createExchangesRouter({config,sessions,authRepository,service}){
+ const router=Router();router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();},requireTrustedRequest(config.origin),requireAuth(authRepository,sessions,config.secure?'__Secure-tgp_session':'tgp_session'));
+ router.get('/availability',async(req,res)=>res.json({success:true,data:service?await service.availability(req.auth.user.user_id):{available:false,modes:[]}}));
+ router.use((_req,res,next)=>service?next():res.status(503).json({success:false,code:'EXCHANGES_UNAVAILABLE',message:'Product exchange is unavailable. Ask authorized staff for assistance with applicable remedies.'}));
+ router.use((req,_res,next)=>{if(!['GET','HEAD'].includes(req.method)&&Object.keys(req.query).length)throw Object.assign(Error('Unexpected query'),{status:400});next();});
+ const respond=(res,data,status=200)=>res.status(status).json({success:true,data});
+ router.get('/sources',async(req,res)=>{const q=z.object({receipt:z.string().trim().min(1).max(100)}).strict().parse(req.query);respond(res,await service.sources(req.auth.user.user_id,q.receipt));});
+ router.get('/products',async(req,res)=>{const q=z.object({q:z.string().max(100).default('')}).strict().parse(req.query);respond(res,await service.products(req.auth.user.user_id,q.q));});
+ router.get('/report',requireRole('admin'),async(req,res)=>{const q=reportQuery.parse(req.query),result=await service.report(req.auth.user.user_id,q.from,q.to);if(!q.format)return res.json({success:true,...result});const file=await generateReportExport('exchanges',q.format,result,{from:q.from,to:q.to});res.set('Content-Type',q.format==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf').set('Content-Disposition',`attachment; filename="tgp-exchanges.${q.format}"`).send(file);});
+ router.get('/',async(req,res)=>{const q=z.object({state:z.enum(['all','pending','approved','rejected','cancelled','posted']).default('all')}).strict().parse(req.query);res.json({success:true,...await service.list(req.auth.user.user_id,q.state)});});
+ router.post('/quote',async(req,res)=>respond(res,await service.quote(req.auth.user.user_id,req.body)));
+ router.post('/',async(req,res)=>respond(res,await service.create(req.auth.user.user_id,req.body),201));
+ router.post('/resolve-request',async(req,res)=>{const body=z.object({request_id:uuid}).strict().parse(req.body);respond(res,await service.resolveRequest(req.auth.user.user_id,body.request_id));});
+ router.param('id',(req,_res,next,id)=>{try{req.params.id=uuid.parse(id);next();}catch(e){next(e);}});
+ router.get('/:id',async(req,res)=>respond(res,await service.detail(req.auth.user.user_id,req.params.id)));
+ router.post('/:id/decision',requireRole('manager','admin'),async(req,res)=>respond(res,await service.decision(req.auth.user.user_id,req.params.id,req.body)));
+ router.post('/:id/cancel',async(req,res)=>respond(res,await service.cancel(req.auth.user.user_id,req.params.id,req.body)));
+ router.post('/:id/quote',async(req,res)=>{z.object({}).strict().parse(req.body);respond(res,await service.reviewedQuote(req.auth.user.user_id,req.params.id));});
+ router.post('/:id/post',async(req,res)=>respond(res,await service.post(req.auth.user.user_id,req.params.id,req.body)));
+ router.post('/:id/resolve',async(req,res)=>{const body=z.object({request_id:uuid}).strict().parse(req.body);respond(res,await service.resolve(req.auth.user.user_id,req.params.id,body.request_id));});
+ router.use((e,_req,res,_next)=>{const status=e instanceof z.ZodError?400:[400,403,404,409,422,503].includes(e.status)?e.status:['23505','23514','23503','P0001','40P01'].includes(e.code)?409:503;
+  const code=/^[A-Z][A-Z_]+$/.test(e.code??'')?e.code:status===503?'EXCHANGES_UNAVAILABLE':'EXCHANGE_CONFLICT';
+  res.status(status).json({success:false,code,message:({400:'Invalid exchange input.',403:'Independent authorized access required.',404:'Matching record not found.',409:'Exchange changed or is already handled. Reload or resolve the saved attempt before retrying.',422:'This case requires authorized clinical, settlement or statutory-remedy review. No cash refund, forfeiture or customer credit was generated.',503:'Exchange unavailable. Contact authorized staff; applicable consumer remedies remain available.'})[status]});
+ });return router;
+}

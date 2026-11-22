@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth, requireRole, requireTrustedRequest } from '../middleware/auth.js';
 import { parseInput, productQuery, batchQuery, productCreate, productEdit, batchCreate, batchEdit, idValue } from '../services/inventory-validation.js';
 
-export function createInventoryRouter({ config, sessions, authRepository, repository }) {
+export function createInventoryRouter({ config, sessions, authRepository, repository,operations }) {
   const router = Router();
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.use(requireTrustedRequest(config.origin));
@@ -12,6 +12,7 @@ export function createInventoryRouter({ config, sessions, authRepository, reposi
     const actor = await authRepository.findById(req.auth.user.user_id, client);
     if (actor?.status !== 'active' || !['admin', 'manager'].includes(actor.role)) throw Object.assign(new Error('Access denied'), { status: 403 });
     if (Object.hasOwn(req.body, 'reorder_level') && actor.role !== 'admin') throw Object.assign(new Error('Access denied'), { status: 403 });
+    if(Object.hasOwn(req.body,'strength_dosage')&&(!operations||!await operations.schemaReady(client)))throw Object.assign(Error('Extended product fields unavailable'),{status:503});
     const row = await work(client);
     await authRepository.audit(client, actor.user_id, `${action}:${row.batch_id ?? row.product_id}`, module);
     return row;

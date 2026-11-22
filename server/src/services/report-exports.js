@@ -5,9 +5,10 @@ import {fileURLToPath} from 'node:url';
 // Explicit allowlist: beneficiary identifiers, names and free-text return reasons
 // are never included. Decimal monetary strings stay exact, including above 2^53.
 export const reportColumns={
+  exchanges:['exchange_id','receipt_no','business_time','return_value','replacement_value','additional_cash','tender','change_due','replacement_units'],
   sales:['period_start','transactions','reviewed','unreviewed','sales_amount'],
   products:['name','category','units','transactions','sales_amount'],
-  transactions:['receipt_no','business_time','cashier','sales_amount','cash_tendered','change_due','return_requests','benefit_type','gross_amount','discount_amount','vat_removed_amount','vat_amount'],
+  transactions:['receipt_no','business_time','cashier','item_count','sales_amount','cash_tendered','change_due','return_requests','benefit_type','gross_amount','discount_amount','vat_removed_amount','vat_amount'],
   categories:['current_category','units','transactions','sales_amount'],
   'best-selling':['current_category','category_rank','product_id','name','units','sales_amount'],
   'slow-moving':['current_category','category_rank','product_id','name','units','sales_amount'],
@@ -28,7 +29,7 @@ export async function generateReportExport(kind,format,result,filters){
   const summary=Object.entries(result).filter(([key,value])=>!['data','page','limit'].includes(key)&&value!==undefined&&typeof value!=='object');
   const notes=[`TGP Pharmacy - ${kind}`,`Filters: ${JSON.stringify(filters)}`,
     'PHP amounts are exact decimal text. Times use Asia/Manila; return recorded dates are dates.',
-    'Cash sales are not reversed by return requests or acceptance. No refund, credit or exchange accounting is implied.',
+    'Cash sales are not reversed by return requests or acceptance. Replacement value and return value applied are not additional cash. Exchange tax/revenue adjustments are not implied.',
     'Categories are current catalog categories. Slow-moving means units <= selected max_units in the selected period.',
     'Category ranks use reconciled units: descending for best-selling (positive units), ascending for slow-moving (including zero). Ties share a dense rank; no revenue-based score is inferred.',
     'Recorded inventory includes expired/today stock. Within-date quantity is an expiry-only measure, excludes expired/today and is unavailable for uncertain quantity/expiry; it is not quarantine certification.',

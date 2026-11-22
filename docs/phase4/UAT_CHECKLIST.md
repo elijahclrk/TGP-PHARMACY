@@ -1,5 +1,15 @@
 # Owner UAT acceptance preparation
 
+## Batch 15 current academic walkthrough — all human signatures pending
+
+Use [BATCH15_ACCEPTANCE_CHECKLIST.md](BATCH15_ACCEPTANCE_CHECKLIST.md) for a concise client/evaluator demonstration and [BATCH15_RESULTS.md](BATCH15_RESULTS.md#d-guarded-local-demonstration-and-exact-commands) for exact current start/stop/non-destructive reset and private synthetic login instructions. `testing/local-demo.mjs` now prepares all implemented capabilities through 013, with test-only Senior/PWD and clinical fixtures. Reviewers must acknowledge the limitations, observe the working journeys and record actual acceptance; automated test results and this checklist do not sign for them. Internal printed confirmations and PDF reports remain distinct from registered fiscal invoices.
+
+## Current Batch 14 review — actual human acceptance remains pending
+
+Use [BATCH14_RESULTS.md](BATCH14_RESULTS.md) for current implementation, exact regression/browser evidence, the local-only review command and the added staff lifecycle, persistent preferences, partial/full PO receiving, product/supplier fields, receipt search and internal print walkthrough. [FINAL_REQUIREMENTS_MATRIX.md](FINAL_REQUIREMENTS_MATRIX.md) now classifies 41 locally TESTED, 8 PARTIAL, 5 BLOCKED, 0 MISSING and 9 OUT OF SCOPE requirements. Prior dated sections below are historical and do not override the current matrix.
+
+The Batch 13 equal/higher-value voluntary exchange MVP is implemented locally; exchange is no longer wholly missing. Lower-value/statutory/discounted/Rx/chain-return treatment remains gated. Batch 14 durable preferences use preserved 010 only in disposable schemas; PO linkage and optional facts use additive 013. Neither proposal is production-applied. Internal print is not registered fiscal invoicing. Do not mark any owner, pharmacist, accountant or training acceptance complete without actual review.
+
 ## Batch 11 current review — all actual business acceptance pending
 
 Use [BATCH11_UAT_WALKTHROUGH.md](BATCH11_UAT_WALKTHROUGH.md) for the current guarded local walkthrough, including Senior/PWD, unknown metadata, stale quotes, lost acknowledgement recovery, returns/quarantine and exact export reconciliation. [BATCH11_RESULTS.md](BATCH11_RESULTS.md) records fresh 122 frontend / 209 backend reported entries and separate 17-group and 9-group Chrome runs. Earlier counts and statements that local discounted posting does not exist are historical below.

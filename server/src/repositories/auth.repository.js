@@ -30,7 +30,7 @@ export function createAuthRepository(poolProvider) {
     },
     async publicUserById(id) {
       return (await poolProvider().query(
-        'SELECT user_id,username,full_name,role,status FROM users WHERE user_id=$1', [id])).rows[0];
+        "SELECT user_id,username,full_name,role,status,(SELECT max(logged_at) AT TIME ZONE 'UTC' FROM activity_logs WHERE user_id=users.user_id AND module='accounts' AND action='auth.login') AS last_sign_in FROM users WHERE user_id=$1", [id])).rows[0];
     },
     async findByUsername(username) { return (await poolProvider().query(
       'SELECT user_id, username, full_name, role, status, password_hash FROM users WHERE username=$1', [username])).rows[0]; },
@@ -61,6 +61,10 @@ export function createAuthRepository(poolProvider) {
     async isEmpty(client) {
       await client.query('LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE');
       return !(await client.query('SELECT 1 FROM users LIMIT 1')).rowCount;
+    },
+    async editUser(client,id,data){
+      const fields=['username','full_name','role','status','password_hash'].filter(f=>Object.hasOwn(data,f));
+      return (await client.query(`UPDATE users SET ${fields.map((f,i)=>`${f}=$${i+2}`).join(',')} WHERE user_id=$1 RETURNING user_id,username,full_name,role,status`,[id,...fields.map(f=>data[f])])).rows[0];
     },
   };
 }

@@ -18,10 +18,13 @@ const {createWorkflowsRepository}=await import('../src/repositories/workflows.re
 assert.equal(await createWorkflowsRepository(getPool).schemaReady(),true,'UAT workflow schema is unavailable');
 const {default:defaultApp,createApplication}=await import('../src/app.js');
 let app=defaultApp;
+let benefits,exchanges,operations;
 if(manifest.benefits===true){
  const {verifiedLocalBenefits}=await import('./local-benefit-runtime.mjs');
- const benefits=await verifiedLocalBenefits(getPool,process.env,process.env.JWT_SECRET);
- app=createApplication({benefits});
+ benefits=await verifiedLocalBenefits(getPool,process.env,process.env.JWT_SECRET);
 }
+if(manifest.exchanges===true){const {verifiedLocalExchanges}=await import('./local-exchange-runtime.mjs');exchanges=await verifiedLocalExchanges(getPool,process.env,process.env.JWT_SECRET,manifest.exchangePolicy);}
+if(manifest.operations===true){const {verifiedLocalOperations}=await import('./local-operations-runtime.mjs');operations=await verifiedLocalOperations(getPool,process.env);}
+if(benefits||exchanges||operations)app=createApplication({benefits,exchanges,operations});
 const server=app.listen(manifest.apiPort,'127.0.0.1',()=>console.log('UAT API ready on loopback; local database and schema verified.'));
 process.on('SIGTERM',()=>server.close(async()=>{await closePool();process.exit(0);}));

@@ -6,8 +6,10 @@ import ReceivingSummary from './ReceivingSummary'
 import { receivingSummary } from './receiving-summary'
 import { formatPHP } from '../utils/money'
 import Modal from '../components/Modal'
+import {useOperations} from '../inventory/useOperations'
 
 export default function PurchasingForm({ kind, path, record, onSaved, onCancel }) {
+  const capabilities=useOperations()
   const [supplierId, setSupplierId] = useState(null)
   const [lines, setLines] = useState([{ key: 1, product_id: null }])
   const [nextKey, setNextKey] = useState(2)
@@ -24,6 +26,7 @@ export default function PurchasingForm({ kind, path, record, onSaved, onCancel }
       product_id: line.product_id, quantity: Number(values.get(`quantity-${line.key}`)),
       ...Object.fromEntries((receiving ? ['batch_no', 'expiry_date', 'cost_price', 'selling_price'] : ['unit_cost']).map(field => [field, values.get(`${field}-${line.key}`)])),
     })) }
+    if(supplier&&capabilities.metadata)for(const field of ['contact_person','email','status'])body[field]=values.get(field)||null
     setPending(true); setError('')
     try {
       const result = await requestJson(record ? `${path}/${record.supplier_id}` : path, { method: record ? 'PATCH' : 'POST', body: JSON.stringify(body) })
@@ -43,6 +46,7 @@ export default function PurchasingForm({ kind, path, record, onSaved, onCancel }
           <Field label="Supplier name" id="supplier-name" name="name" required maxLength={200} defaultValue={record?.name || ''} />
           <Field label="Contact number" id="supplier-contact" name="contact_no" maxLength={500} defaultValue={record?.contact_no || ''} />
           <Field label="Address" id="supplier-address" name="address" maxLength={500} defaultValue={record?.address || ''} />
+          {capabilities.metadata&&<><Field label="Contact person" id="supplier-person" name="contact_person" maxLength={500} defaultValue={record?.contact_person||''}/><Field label="Supplier email" id="supplier-email" name="email" type="email" maxLength={254} defaultValue={record?.email||''}/><label>Supplier status<select className="block w-full border p-2" name="status" defaultValue={record?.status||''}><option value="">Not set</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label></>}
         </div> : <>
           <div className="grid items-start gap-6 sm:grid-cols-2">{receiving && <Field label="Delivery reference" id="delivery-ref" name="delivery_ref" required maxLength={200} />}
           <RecordPicker label="Supplier" path="/suppliers" idKey="supplier_id" onSelect={setSupplierId} /></div>

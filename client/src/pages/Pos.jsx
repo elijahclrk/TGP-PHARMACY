@@ -12,8 +12,8 @@ import { requestJson } from '../auth/api'
 import { useInventory } from '../inventory/useInventory'
 import { buttonClass, secondaryClass, fieldClass, Paging, QueryState } from '../inventory/shared'
 
-function Receipt({ data, onClose }) {
-  return <Modal title="Transaction complete" wide onClose={onClose}><section aria-label="Receipt">
+export function Receipt({ data, onClose, historical=false }) {
+  return <Modal title={historical?'Historical transaction':'Transaction complete'} wide onClose={onClose}><section aria-label="Receipt" className="print-transaction">
     <p className="receipt-brand">The Generics Pharmacy</p><p className="text-sm text-slate-500">Lawang Bato Branch · Transaction confirmation</p>
     <p className="mt-3 break-all">{data.receipt_no}</p>
     <p className="text-sm text-slate-600">Cashier: {data.username} · {new Date(data.sale_date).toLocaleString('en-PH', { timeZone:'Asia/Manila' })}</p>
@@ -22,7 +22,8 @@ function Receipt({ data, onClose }) {
     {data.financial&&<section aria-label="Historical benefit breakdown"><p>Benefit: {data.financial.benefit}</p><p>Original gross: {formatPHP(data.financial.gross)} · VAT removed: {formatPHP(data.financial.vatRemoved)} · Discount: {formatPHP(data.financial.discount)} · VAT charged: {formatPHP(data.financial.vat)}</p><p>VATable base: {formatPHP(data.financial.vatable)} · Exempt base: {formatPHP(data.financial.exempt)} · Non-VAT base: {formatPHP(data.financial.nonVat??'0.00')}</p></section>}
     {data.payments.map((payment,index) => <p key={index} className="mt-2">Cash received: {formatPHP(payment.amount_paid)} · Change: {formatPHP(payment.change_due)}</p>)}
     <p className="mt-4 text-xs text-slate-500">MVP transaction confirmation. Fiscal receipt requirements remain subject to validation.</p>
-    <button type="button" className={`${secondaryClass} mt-5`} onClick={onClose}>Back to POS</button>
+    <button type="button" className={`${secondaryClass} mt-5 print-hidden`} onClick={()=>window.print()}>Print transaction confirmation</button>
+    <button type="button" className={`${secondaryClass} mt-5 print-hidden`} onClick={onClose}>{historical?'Close transaction':'Back to POS'}</button>
   </section></Modal>
 }
 export default function Pos() {

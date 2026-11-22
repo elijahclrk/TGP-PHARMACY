@@ -5,8 +5,9 @@ test('demo facade refuses unsupported actions, URLs and extra switches without i
   for(const args of [[],['start'],['seed','local'],['start','postgresql://never-use'],['reset','local','--production'],['start','']])assert.throws(()=>demoPlan(args));
 });
 test('fresh-schema reset preserves prior runs and requests compiled frontend verification without a destructive reset command',()=>{
-  assert.deepEqual(demoPlan(['reset','local-root']),[['local-postgres.mjs','verify','local-root'],['batch4-uat.mjs','local-root','--built-client']]);
-  assert.deepEqual(demoPlan(['start','local-root'])[1],['batch4-uat.mjs','local-root','--built-client','--review']);
+  const flags=['--built-client','--benefits','--exchanges','--operations','--demo'];
+  assert.deepEqual(demoPlan(['reset','local-root']),[['local-postgres.mjs','verify','local-root'],['batch4-uat.mjs','local-root',...flags]]);
+  assert.deepEqual(demoPlan(['start','local-root'])[1],['batch4-uat.mjs','local-root',...flags,'--review']);
 });
 test('failed isolation preflight stops before any demo fixture/build runner starts',async()=>{
   const commands=[];await assert.rejects(runDemo(['reset','local-root'],async command=>{commands.push(command);throw new Error('refused')}));assert.equal(commands.length,1);assert.equal(commands[0][0],'local-postgres.mjs');

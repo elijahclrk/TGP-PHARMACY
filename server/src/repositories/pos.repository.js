@@ -69,6 +69,7 @@ export function createPosRepository(poolProvider) {
     return { priced, allocations, business_date, fingerprint: quoteFingerprint({ business_date, ...priced, allocations }) };
   }
   return {
+    snapshot: reviewedSnapshot, // Internal transaction helper shared by protected replacement checkout.
     receipt,
     async status(client, actor, requestId) {
       const rows = (await client.query('SELECT sale_id,user_id FROM sales WHERE receipt_no=$1', ['POS-'+requestId.toLowerCase()])).rows;

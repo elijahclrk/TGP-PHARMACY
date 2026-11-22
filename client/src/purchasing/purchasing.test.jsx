@@ -96,7 +96,8 @@ test('purchase order editor has cost and quantity but no receiving fields', asyn
   await screen.findAllByText('No matches. Create a record first.')
 })
 test('new pages render errors, retry and empty state', async () => {
-  requestJson.mockRejectedValueOnce(new Error('network')).mockResolvedValue(page([]))
+  let fail=true
+  requestJson.mockImplementation(async path=>{if(path.startsWith('/purchase-orders?')&&fail){fail=false;throw new Error('network')}return page([])})
   mount(<Purchasing kind="orders" />)
   await screen.findByRole('alert')
   await userEvent.click(screen.getByRole('button', { name: 'Try again' }))

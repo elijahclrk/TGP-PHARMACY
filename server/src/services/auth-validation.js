@@ -8,6 +8,7 @@ export const userSchema = z.object({
   role: z.enum(['manager', 'employee']),
 }).strict();
 export const bootstrapSchema = userSchema.extend({ role: z.literal('admin') });
+export const accountEdit=userSchema.partial().extend({full_name:z.string().trim().min(1).max(120).nullable().optional(),status:z.enum(['active','inactive']).optional()}).strict().refine(value=>Object.keys(value).length>0);
 export const accountListQuery = z.object({
   q: z.string().trim().max(200).default(''),
   page: z.string().regex(/^[1-9]\d{0,5}$/).transform(Number).default(1),

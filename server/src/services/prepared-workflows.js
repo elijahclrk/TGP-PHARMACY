@@ -82,6 +82,7 @@ export function createPreparedWorkflows(poolProvider) {
     return decide(c, 'adjustment', adjustment, actor, 'approved', null, { posted_at: timestamp, balance_before: batch.qty_on_hand, balance_after: after });
   }
   return {
+    requirePaidSale, // Transaction-safe reconciliation helper; caller supplies its locked client.
     async requestAdjustment(actorId, input) {
       const batchId = integer(input.batch_id), reason = text(input.reason), requestKey = key(input.request_key);
       if (!Number.isInteger(input.quantity) || input.quantity === 0 || Math.abs(input.quantity) > 2147483647) fail(400);

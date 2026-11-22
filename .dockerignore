@@ -37,4 +37,13 @@ server/database/migrations/proposed/*
 server/database/migrations/proposed/batch1/*
 !server/database/migrations/proposed/batch1/007_decision_workflows.sql
 !server/database/migrations/proposed/batch1/008_return_dispositions.sql
+!server/database/migrations/proposed/batch13/
+server/database/migrations/proposed/batch13/*
+!server/database/migrations/proposed/batch13/012_local_product_exchanges.sql
+!server/database/migrations/proposed/batch7/
+server/database/migrations/proposed/batch7/*
+!server/database/migrations/proposed/batch7/010_in_app_notification_preferences.sql
+!server/database/migrations/proposed/batch14/
+server/database/migrations/proposed/batch14/*
+!server/database/migrations/proposed/batch14/013_operational_completion.sql
 client/src/**/*.test.*

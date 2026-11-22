@@ -11,7 +11,7 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   return value >= '0001-01-01' && !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 }, 'Use a valid calendar date.');
 export const productCreate = z.object({ name: text, generic_name: optionalText.optional(), category: optionalText.optional(),
-  unit_price: money, reorder_level: quantity.nullable().optional() }).strict();
+  strength_dosage:optionalText.optional(),unit_price: money, reorder_level: quantity.nullable().optional() }).strict();
 export const productEdit = productCreate.partial().refine(value => Object.keys(value).length > 0);
 const batchFields = { batch_no: text, expiry_date: date, cost_price: money, selling_price: money };
 // A zero value can be acknowledged at creation, but never accepted for editing.

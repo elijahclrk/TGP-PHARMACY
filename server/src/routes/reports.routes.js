@@ -11,7 +11,8 @@ export function createReportsRouter({config,sessions,authRepository,repository,i
   const details=['transactions','categories','best-selling','slow-moving','returns'];
   router.get('/:kind/export',requireRole('admin'),async(req,res)=>{
     const {kind}=req.params;const {format,...filters}=req.query;
-    if(!Object.hasOwn(reportColumns,kind)||!['xlsx','pdf'].includes(format))return res.status(400).json({success:false,message:'Unsupported report or export format.'});
+    if(Object.hasOwn(filters,'receipt')&&kind!=='transactions')return res.status(400).json({success:false,message:'Receipt filter requires transaction history.'});
+    if(kind==='exchanges'||!Object.hasOwn(reportColumns,kind)||!['xlsx','pdf'].includes(format))return res.status(400).json({success:false,message:'Unsupported report or export format.'});
     if(Object.hasOwn(filters,'category')&&!['best-selling','slow-moving','low-stock'].includes(kind))return res.status(400).json({success:false,message:'Category filter is unsupported for this report.'});
     // Page parameters are deliberately absent: export every filtered row, never
     // silently export only the visible page or truncate a large report.
@@ -33,6 +34,7 @@ export function createReportsRouter({config,sessions,authRepository,repository,i
     res.set('Content-Disposition',`attachment; filename="tgp-${kind}.${format}"`).send(file);
   });
   for(const kind of details)router.get('/'+kind,requireRole('admin'),async(req,res)=>{
+    if(Object.hasOwn(req.query,'receipt')&&kind!=='transactions')return res.status(400).json({success:false,message:'Receipt filter requires transaction history.'});
     if(Object.hasOwn(req.query,'category')&&!['best-selling','slow-moving'].includes(kind))return res.status(400).json({success:false,message:'Category filter is unsupported for this report.'});
     const query=reportInput(detailReportQuery,req.query,res);if(query)res.json({success:true,...await repository.detail(kind,query)});
   });
