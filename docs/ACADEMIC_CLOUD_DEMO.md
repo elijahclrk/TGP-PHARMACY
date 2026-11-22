@@ -37,10 +37,13 @@ cannot independently prove a Neon control-plane project ID. The operator must
 verify that the actual endpoint belongs to that new project before signing.
 
 Use two credentials: an owner/operator and a runtime role named
-`demo_runtime_*`. Create the runtime role separately in the new project with
+`demo_runtime_*`, or the exact approved names `tgp_academic_runtime` and
+`tgp_academic_runtime_sql`. Both exact names require `tgp_academic_operator`
+for inspection and operator init/seed actions. Other `tgp_*` role
+names are not accepted. Create the runtime role separately in the new project with
 login but NO superuser, CREATEDB, CREATEROLE, BYPASSRLS or owner membership.
 Do not use the default Neon owner/administrative role as the application role.
-The runtime must have no role memberships, schema-creation or temporary-table
+The runtime must have no role memberships, replication, schema-creation or temporary-table
 privileges. Signed catalog verification includes database/schema/table/column
 ACLs, so subsequent grant drift also invalidates the authorization.
 The operator tool checks the connected database owner and later verifies the
@@ -90,7 +93,136 @@ rtk proxy <NODE24> academic/operator.mjs seed academic/private/.env.cloud-initia
 rtk proxy <NODE24> academic/operator.mjs verify academic/private/.env.cloud-initialized
 ```
 
-`inspect` verifies configuration and connected identity read-only. `init` refuses
+`inspect` is an EMPTY-target check, not a post-initialization health check. It
+does not require the future Railway HTTPS origin. It validates explicit target
+identity/URLs and the configured validity window using an unsigned, inspection-
+only descriptor. It neither signs a manifest nor issues a runtime capability;
+it does not need the JWT or signing key for this action. Missing origin is not
+replaced with a fake domain. The operator requires a valid exact HTTPS origin
+before signing for `init`, `seed` or `verify`; runtime validation also continues
+to require it. No write-capable action inherits this inspection exception.
+The inspection descriptor cannot pass runtime signature/capability verification.
+
+It connects first as the configured operator, then as the configured runtime role,
+using only explicit private URLs and certificate/hostname verification. Both
+sessions use UTC, public search path and `BEGIN READ ONLY`, followed by
+`ROLLBACK` and connection closure even on failure. It never imports the seed
+module or the ordinary dotenv configuration.
+
+It verifies exact database/current/session roles, operator usable database and
+public-schema ownership, CONNECT/CREATE/USAGE rights, and runtime login. It
+refuses runtime memberships, elevated/replication attributes, ownership of any
+database, CREATE/TEMP access, and CONNECT to other non-template databases.
+It also refuses any existing database comment (including an earlier setup
+marker), user relations/functions/types, extra schemas/extensions, event
+triggers, publications and other user SQL objects. Only the standard public
+schema and plpgsql extension are expected. It performs no SELECT on business
+records and never grants, revokes, migrates, seeds or repairs.
+
+Neon Console-created role memberships and default PUBLIC CREATE/TEMP/CONNECT
+grants may therefore block a new database. A rotated password does not remove
+privileges. Stop with the sanitized check code and request a separately
+reviewed least-privilege correction; do not replace runtime credentials with
+owner credentials. Catalog checks cannot prove Neon project ownership or
+the ability to execute every future DDL operation. Independently confirm the
+new project's ID/endpoint and operator authority in the client console.
+Inspection is a point-in-time observation; repeat it immediately before any
+separately approved initialization. Use `verify` after initialization/seed;
+do not rerun empty-target `inspect` against a populated database.
+
+### New Neon target: next read-only phase (separate approval)
+
+The client-provided database `tgp_demo_academic_web` and roles
+`tgp_academic_operator` / `tgp_academic_runtime_sql` are supported identities, not
+evidence that the actual remote grants or isolation have passed. Do not use the
+existing `server/.env`, default `neondb_owner` credential or the professor demo
+configuration. Do not run `prepare` over an existing private file or rotate
+already prepared signing/JWT material. Fill the existing ignored operator JSON
+privately; set `target.role` to `tgp_academic_runtime_sql` and use the actual project
+ID/endpoint, not just the project display name. Inspection may run while origin
+is blank, but the configured window must still be valid (at most seven days;
+the private template default is two days). Signed setup/ready authorization
+and all subsequent setup/runtime actions still require a valid exact HTTPS
+origin. Stop for review if the window expired.
+
+After explicit approval to connect read-only, use PowerShell from the project:
+
+```powershell
+Set-Location 'C:\Users\spori\OneDrive\Documents\TGP_Pharmacy\server'
+$Node24 = 'C:\Users\spori\AppData\Local\Temp\tgp-node24-qZh55x\node.exe'
+rtk proxy $Node24 --version
+rtk proxy git check-ignore -- academic/private/private.json
+rtk proxy $Node24 academic/operator.mjs inspect academic/private/private.json
+```
+
+The Node path is a currently verified temporary installation; revalidate it or
+use another verified Node 24 path if unavailable. Do not put credentials in
+commands, chat or terminal output. The JSON must stay privately protected;
+Gitignore and POSIX mode bits alone do not establish Windows ACL or OneDrive
+privacy. The successful result contains only verification booleans, including
+`operatorVerified`, `runtimeVerified`, `emptyDatabase`,
+`runtimeRoleIsolation`, `readOnly` and `changesApplied:false`.
+
+On rejection the CLI prints a fixed check code such as `runtime_membership`,
+`runtime_ownership_or_ddl`, `runtime_other_database_access`,
+`operator_permissions` or `unexpected_database_objects`, with no URL/password.
+Connection failures produce a generic safe error. Preserve state and request
+review; do not proceed to `init`, `seed`, grants or deployment. A passing inspect
+does not authorize any of those actions. No remote preflight has been executed
+as part of implementing this support. The later origin-independent inspection
+and its operator-permission failure are recorded separately in
+`phase4/ACADEMIC_NEON_ORIGIN_INSPECTION_RESULTS.md`.
+
+### Restricted SQL-role transition (no automatic database changes)
+
+The owner reports that the existing Console-created `tgp_academic_runtime` has
+administrative attributes and neon_superuser membership. Name compatibility does
+not authorize those privileges: runtime/preflight still reject them. Do not use
+that credential in the hosted service or silently demote, rename or drop it.
+The newly approved identity is exactly `tgp_academic_runtime_sql`; suffix variants
+and arbitrary tgp_* names remain rejected. Its SQL creation and grants require
+separate authorization and verification.
+
+After the restricted role exists, has a privately assigned password and can log
+in, the owner must privately change only these fields in the EXISTING ignored
+`academic/private/private.json`:
+
+| Field | Required transition |
+|---|---|
+| target.role | tgp_academic_runtime_sql |
+| runtimeUrl | New restricted role's complete direct URL, same approved endpoint/database and required TLS parameters |
+
+Keep `target.database=tgp_demo_academic_web`, the approved host/project identity,
+and `operatorUrl` for tgp_academic_operator. Do not mechanically replace the old
+URL username while retaining the old administrative password. Preserve signing
+keys, JWT secret, demo/seed IDs and synthetic account passwords; do not rerun
+prepare. Check the inspection window and stop for review if expired. Origin may
+remain blank for inspect only; subsequent signed/setup/runtime actions still
+require the real exact HTTPS origin.
+
+No ready authorization has been published for this transition. Future authorized
+init/seed must derive the target role from the updated configuration. Never
+hand-edit an already signed manifest, marker or generated runtime checkpoint to
+change identities. If initialized/ready state exists, stop for a separate
+transition plan rather than applying these fresh-target instructions.
+
+The earlier proposed ownership-transfer SQL used tgp_academic_runtime in its
+runtime-isolation guard. Review that guard to use tgp_academic_runtime_sql before
+any approval; database/public ownership must still go to the OPERATOR, never
+to the runtime. No transfer SQL has been executed or added to application
+startup. Verify actual owners, schema ACLs, and neondb_owner's existing CREATEDB
+and SET ROLE authority separately. Membership in the same administrative group
+does not establish role-to-role ownership-transfer authority.
+
+The initializer's grants and runtime capability checks already use the
+manifest's exact role dynamically. They require no migration or identity
+substitution. The operator pairing is shared by inspection and init/seed so an
+owner-credential substitution cannot bypass it. Privilege/membership, CREATE,
+TEMP, cross-database CONNECT, TLS, catalog and attestation checks are unchanged.
+PUBLIC privileges can still block a fresh SQL-created role; correcting those
+requires a separately scoped ACL plan, not weakening the inspector.
+
+`init` refuses
 any nonempty user database, uses a transaction/advisory lock and applies exactly:
 
 **001 / 002 / 004 / 003 / 007 / 008 / 009 / 011 / 012 / 010 / 013**.
@@ -130,6 +262,25 @@ partial resume or destructive reset. If authorizations expire, stop for an
 explicit reviewed renewal; immutable financial/policy history is not rewritten.
 
 ## Railway configuration: separate approval required
+
+For the exact academic database and restricted SQL identity, an optional signed
+`target.managedPostgresDigest` permits the reviewed Neon-managed `postgres`
+access. Collect the candidate hash with the operator CLI action
+`review-managed-postgres` after separately approved role activation and ACL
+setup. Review the provider catalog against the audited definitions before
+pinning the hash. Never approve a replacement hash solely to clear a failure.
+With the hash configured, inspect and runtime startup check the same direct
+endpoint over TLS and compare effective grants and object metadata. Without
+the hash, the empty-target inspector retains its strict CONNECT rule.
+
+This policy accepts provider PUBLIC CONNECT, TEMP and large-object creation
+capabilities in `postgres`. It does not enforce database-wide write isolation
+there. The catalog check covers non-system application objects and existing
+accessible large objects at inspection and startup. It does not monitor an
+already-running process continuously. Keep this project dedicated to synthetic
+data and restart/reverify after provider or ACL changes. Keep owner credentials
+local. Only the restricted credential and signed runtime authorization belong
+in Railway.
 
 Use a single service with repository-root Docker build context. The existing
 Dockerfile pins Node 24, builds React and runs nonroot. Override the service start

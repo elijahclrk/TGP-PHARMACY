@@ -23,7 +23,8 @@ export function createExchangesRepository({poolProvider,secret,policy,isolatedCa
   }
   const rows=(await c.query("SELECT c.relname,t.tgname,t.tgenabled FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE c.relnamespace=current_schema()::regnamespace AND c.relname=ANY($1::text[]) AND t.tgname IN('exchange_guard','exchange_reconcile')",[tables])).rows;
   const audit=(await c.query("SELECT 1 FROM pg_trigger WHERE tgrelid='activity_logs'::regclass AND tgname='exchange_audit_guard' AND tgenabled='O'")).rowCount;
-  const constraints=(await c.query("SELECT count(*)::int AS n,bool_and(convalidated) AS valid FROM pg_constraint WHERE conrelid IN(SELECT oid FROM pg_class WHERE relnamespace=current_schema()::regnamespace AND relname=ANY($1::text[]))",[tables])).rows[0];
+  // PostgreSQL 18 also catalogs column NOT NULL constraints as type 'n'.
+  const constraints=(await c.query("SELECT (count(*) FILTER (WHERE contype <> 'n'))::int AS n,bool_and(convalidated) AS valid FROM pg_constraint WHERE conrelid IN(SELECT oid FROM pg_class WHERE relnamespace=current_schema()::regnamespace AND relname=ANY($1::text[]))",[tables])).rows[0];
   const domain=(await c.query("SELECT 1 FROM pg_constraint c JOIN pg_type t ON t.oid=c.contypid WHERE t.typnamespace=current_schema()::regnamespace AND t.typname='tgp_exchange_money' AND c.convalidated AND pg_get_constraintdef(c.oid) LIKE '%scale%'")).rowCount;
   // Includes six deferred constraint-trigger entries in pg_constraint.
   return rows.length===12&&rows.every(r=>r.tgenabled==='O')&&audit===1&&constraints.n===48&&constraints.valid&&domain===1;

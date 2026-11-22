@@ -1,5 +1,6 @@
 import {canonical,readManifest,refuse} from './manifest.js';
 import {migrationManifest,verifyCanonicalSchema,schemaFingerprint} from './migrations.js';
+import {verifyManagedPostgres} from './managed-postgres.js';
 const issued=new WeakMap();
 export function academicDetails(capability,provider){
  const record=issued.get(capability);if(!record||record.provider!==provider||Date.parse(record.config.document.payload.expiresAt)<=Date.now())return null;
@@ -18,7 +19,7 @@ export async function verifyAcademicClient(client,config){
  await client.query('BEGIN READ ONLY');
  try{
   const row=(await client.query(`SELECT current_database() AS database,current_user AS role,current_schema() AS schema,
-   shobj_description(d.oid,'pg_database') AS attestation,r.rolsuper,r.rolcreatedb,r.rolcreaterole,r.rolbypassrls,
+   shobj_description(d.oid,'pg_database') AS attestation,r.rolsuper,r.rolcreatedb,r.rolcreaterole,r.rolbypassrls,r.rolreplication,
    pg_has_role(current_user,d.datdba,'MEMBER') AS owns_database,
    EXISTS(SELECT 1 FROM pg_auth_members WHERE member=r.oid) AS member_of_role,
    has_database_privilege(current_user,current_database(),'CREATE') AS can_create_schema,
@@ -27,7 +28,7 @@ export async function verifyAcademicClient(client,config){
    has_table_privilege(current_user,'tgp_schema_migrations','INSERT,UPDATE,DELETE') AS can_write_ledger,
    current_setting('TimeZone') AS timezone FROM pg_database d JOIN pg_roles r ON r.rolname=current_user WHERE d.datname=current_database()`)).rows[0];
   const p=config.document.payload;
-  if(!row||row.database!==p.database||row.role!==p.role||row.schema!==p.schema||!['rolsuper','rolcreatedb','rolcreaterole','rolbypassrls','owns_database','member_of_role','can_create_schema','can_create_temp','can_create','can_write_ledger'].every(k=>row[k]===false)||!['UTC','GMT'].includes(row.timezone))refuse();
+  if(!row||row.database!==p.database||row.role!==p.role||row.schema!==p.schema||!['rolsuper','rolcreatedb','rolcreaterole','rolbypassrls','rolreplication','owns_database','member_of_role','can_create_schema','can_create_temp','can_create','can_write_ledger'].every(k=>row[k]===false)||!['UTC','GMT'].includes(row.timezone))refuse();
   if(row.attestation!==canonical(config.document))refuse();
   const manifest=await migrationManifest();if(manifest.digest!==p.migrationDigest)refuse();
   const rows=(await client.query('SELECT version,checksum FROM tgp_schema_migrations ORDER BY version')).rows;
@@ -39,6 +40,7 @@ export async function verifyAcademicClient(client,config){
 }
 export async function verifiedAcademicContext(config,pool){
  config=Object.freeze({...config,document:readManifest(Buffer.from(canonical(config.document)).toString('base64'),config.publicKey),proxies:Object.freeze([...config.proxies])});
+ await verifyManagedPostgres(config);
  const provider=()=>verified;
  const verified={async connect(){const c=await pool.connect();try{await verifyAcademicClient(c,config);return c;}catch(error){c.release();throw error;}},async query(...args){const c=await this.connect();try{return await c.query(...args);}finally{c.release();}}};
  const c=await verified.connect();c.release();
