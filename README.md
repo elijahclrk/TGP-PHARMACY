@@ -1,133 +1,194 @@
-# System Analysis and Design Project
+# 💊 TGP Pharmacy Inventory and Sales Management System
 
-## 📦 Tracking and Inventory System for Second Daze Apparel
+## System Analysis and Design Project
 
-A system designed to help **Second Daze Apparel** manage and track its inventory efficiently. The system focuses on monitoring products, stock levels, and inventory records to make inventory management more organized and accurate.
+A web-based **Pharmacy Inventory and Sales Management System** developed for **The Generics Pharmacy (TGP)**.
+
+The system is designed to streamline pharmacy operations by managing medicine inventory, monitoring stock levels and expiration dates, processing cash sales, tracking purchases, and generating business reports through a centralized platform.
 
 ---
 
 ## 📌 Project Overview
 
-The **Tracking and Inventory System for Second Daze Apparel** is developed as part of the **System Analysis and Design** subject.
+The **TGP Pharmacy Inventory and Sales Management System** is developed as an academic project under the **System Analysis and Design** subject.
 
-The system aims to provide a simple and organized way of tracking apparel inventory and monitoring stock availability.
+It aims to improve the accuracy, efficiency, and organization of pharmacy inventory and sales operations by reducing manual recordkeeping and providing role-based access to essential management features.
+
+The application supports **Administrator, Manager, and Employee** accounts.
 
 ---
 
-## 🎯 Objectives
+## 🎯 Project Objectives
 
-* Track available products and inventory.
-* Monitor stock levels.
-* Keep inventory records organized.
-* Reduce errors in manual inventory tracking.
-* Make it easier to identify available and low-stock products.
-* Provide a centralized system for inventory information.
+- Centralize medicine and inventory records.
+- Monitor stock availability and expiration dates.
+- Reduce manual inventory and sales recording errors.
+- Process and track cash-based point-of-sale transactions.
+- Apply First-Expired, First-Out (FEFO) inventory allocation.
+- Manage suppliers, purchase orders, and stock receiving.
+- Support controlled returns, product exchanges, and inventory adjustments.
+- Generate sales, inventory, and management reports.
+- Maintain user accountability through role-based access and audit logs.
 
 ---
 
 ## ⚙️ Main Features
 
-### 📋 Product Management
+### 💊 Product and Inventory Management
 
-* Add new products
-* View product information
-* Update product details
-* Remove products
+- Add, view, and update medicine products.
+- Manage medicine batches, costs, and selling prices.
+- Monitor inventory quantities and expiration dates.
+- Track low-stock and expiring medicines.
+- Configure reorder thresholds.
+- Apply FEFO principles to inventory deductions.
 
-### 📦 Inventory Tracking
+### 🛒 Point of Sale (POS)
 
-* Monitor current stock
-* Track stock changes
-* View available inventory
-* Identify low-stock products
+- Search and select medicines.
+- Manage a shopping cart.
+- Process cash payments.
+- Calculate transaction totals and change.
+- Generate internal transaction receipts.
+- Search and review transaction history.
+- Support locally tested Senior Citizen and PWD discount workflows, subject to applicable validation and deployment controls.
 
-### 🔍 Search and Monitoring
+### 📦 Supplier and Purchase Order Management
 
-* Search for products
-* View inventory records
-* Check product availability
+- Maintain supplier records.
+- Create and manage purchase orders.
+- Record approved stock receiving.
+- Track partial and complete purchase order receiving.
+- Update inventory through controlled stock-in transactions.
 
-### 📊 Inventory Records
+### 🔄 Returns and Product Exchanges
 
-* Maintain organized inventory information
-* View product and stock records
-* Keep information updated
+- Record product-return requests.
+- Manage return reviews and approvals.
+- Track quarantined returned medicines.
+- Process supported equal-value and higher-value product exchanges.
+- Maintain exchange transaction history and audit records.
+- Restrict unresolved clinical, statutory, or settlement scenarios.
+
+### ✅ Approvals and Inventory Adjustments
+
+- Request inventory adjustments.
+- Review and approve authorized inventory changes.
+- Manage controlled approval workflows.
+- Maintain traceability of stock movements.
+
+### 📊 Dashboard and Reports
+
+- View inventory and sales summaries.
+- Monitor stock conditions and business activity.
+- Generate sales and inventory reports.
+- Export supported reports to Excel and PDF.
+- Provide management-level visibility into transactions and operational records.
+
+### 👥 User and Access Management
+
+- Administrator, Manager, and Employee roles.
+- Secure login and session management.
+- Role-based permissions.
+- Administrative account management.
+- User activity and audit logs.
+- Persistent supported notification preferences.
 
 ---
 
-## 👥 Users
+## 🛠️ Technology Stack
 
-The system is intended for:
-
-* **Administrator** – manages products and inventory records.
-* **Staff** – monitors and updates inventory information.
+| Component | Technology |
+|---|---|
+| Frontend | React, Vite, Tailwind CSS |
+| Backend | Node.js, Express.js |
+| Database | PostgreSQL (Neon) |
+| API | REST API |
+| Version Control | Git and GitHub |
+| CI | GitHub Actions |
+| Deployment | Cloud hosting (deployment in progress) |
 
 ---
 
-## 🛠️ System Development
+## 🏗️ System Architecture
 
-This project is developed for academic purposes under the **System Analysis and Design** subject.
+The application follows a centralized web-based architecture:
 
-### Development Process
+**Web Browser → React Frontend → Express REST API → PostgreSQL Database**
 
-1. Requirements Gathering
-2. System Analysis
-3. System Design
-4. Database Design
-5. Interface Design
-6. System Development
-7. Testing
-8. Documentation
+Authorized users access the system through a web browser. Business rules and security controls are enforced by the backend, while persistent pharmacy records are stored in PostgreSQL.
+
+---
+
+## 🧪 Testing and Validation
+
+The academic MVP has undergone local functional and automated validation, including:
+
+- 130 frontend tests passed.
+- 237 backend reported test entries passed.
+- 43 Chrome browser journey groups passed.
+- PostgreSQL integration and concurrency testing.
+- Lint and Node.js 24 production build verification.
+
+These results describe local validation and do not constitute commercial deployment certification or actual pharmacy acceptance.
 
 ---
 
 ## 📁 Project Documentation
 
-The project may include the following System Analysis and Design documents:
+The project includes System Analysis and Design documentation covering:
 
-* Project Proposal
-* Feasibility Study
-* Requirements Analysis
-* Use Case Diagram
-* Activity Diagram
-* Data Flow Diagram
-* Entity Relationship Diagram
-* System Architecture
-* Database Design
-* User Interface Design
-* System Documentation
-
----
-
-## 🎨 System Scope
-
-The system focuses primarily on **inventory tracking and management** for Second Daze Apparel.
-
-It does **not** focus on online selling or order processing. Its main purpose is to provide an organized system for monitoring and maintaining inventory information.
+- Requirements gathering and analysis.
+- Feasibility study.
+- Use case and activity diagrams.
+- Data flow diagrams.
+- Entity relationship diagram.
+- Database schema and migration design.
+- User interface designs and wireframes.
+- System architecture.
+- Implementation and testing reports.
+- Acceptance and deployment readiness documentation.
 
 ---
 
 ## 🎓 Academic Project
 
-**Subject:** System Analysis and Design
-**Project:** Tracking and Inventory System for Second Daze Apparel
-**Purpose:** Academic / Educational Project
+**Subject:** System Analysis and Design  
+**Project:** TGP Pharmacy Inventory and Sales Management System  
+**Purpose:** Academic and Educational Project  
+**Application Type:** Web-Based Inventory and Sales Management System
 
 ---
 
-## 👨‍💻 Team Members
+## 👨‍💻 Project Team
 
-| Name     | Role                       |
-| -------- | -------------------------- |
+| Name | Role |
+|---|---|
 | Member 1 | System Analyst / Developer |
 | Member 2 | System Analyst / Developer |
 | Member 3 | System Analyst / Developer |
 | Member 4 | System Analyst / Developer |
 
-> Replace the member names and roles with your actual group information.
+*Replace the placeholders with the actual project members and roles.*
 
 ---
 
-## 📄 Note
+## 🔐 Security and Usage Notes
 
-This system is developed for educational purposes as part of the requirements for the **System Analysis and Design** subject.
+- Environment credentials and database connection strings must never be committed to GitHub.
+- Access to pharmacy functions is controlled by user roles.
+- Experimental transactions must use isolated synthetic data.
+- Production use of statutory discounts, fiscal invoicing, and restricted medicine workflows requires appropriate validation and authorization.
+- The application is intended for academic demonstration while commercial production readiness requirements remain outstanding.
+
+---
+
+## 📄 Project Status
+
+**Academic MVP:** Implemented and locally tested  
+**Cloud Deployment:** In preparation  
+**Commercial Production:** Pending operational and required external approvals
+
+---
+
+*Developed as part of the System Analysis and Design academic project.*
