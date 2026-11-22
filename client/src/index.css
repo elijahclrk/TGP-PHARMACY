@@ -179,7 +179,9 @@ button:not(:disabled), select { cursor: pointer; }
   .ui-modal-body { padding: 0 20px 24px; }
 }
 @media (prefers-reduced-motion: no-preference) { .sidebar-link, .ui-button { transition: background-color .15s ease; } }
+.academic-demo-notice { position: sticky; top: 0; z-index: 1000; padding: 12px 16px; margin: 0; background: #fff3cd; color: #623b00; border: 2px solid #9b6000; font-weight: 800; font-size: 13px; text-align: center; }
 @media print {
+  .academic-demo-notice { position: static; color: black; background: white; border: 2px solid black; }
   body:has(.print-transaction) > :not(dialog) { display: none !important; }
   body:has(.print-transaction) { overflow: visible !important; }
   dialog:has(.print-transaction) { position: static; display: block; width: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; overflow: visible; }

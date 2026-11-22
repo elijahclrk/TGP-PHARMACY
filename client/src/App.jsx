@@ -15,6 +15,8 @@ import ReorderThresholds from './pages/ReorderThresholds'
 import Approvals from './pages/Approvals'
 import ControlledWorkflows from './pages/ControlledWorkflows'
 import Notifications from './pages/Notifications'
+import AcademicDemoNotice from './components/AcademicDemoNotice'
+import AcademicDemoProvider from './components/AcademicDemoProvider'
 
 function Protected({ role, management, children }) {
   const { user } = useAuth()
@@ -46,5 +48,5 @@ function AppRoutes() {
   </Routes>
 }
 export default function App() {
-  return <BrowserRouter><AuthProvider><AppRoutes /></AuthProvider></BrowserRouter>
+  return <AcademicDemoProvider><AcademicDemoNotice/><BrowserRouter><AuthProvider><AppRoutes /></AuthProvider></BrowserRouter></AcademicDemoProvider>
 }

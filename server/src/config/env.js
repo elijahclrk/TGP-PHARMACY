@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 
-dotenv.config({
+if(process.env.TGP_RUNTIME!=='academic-cloud')dotenv.config({
   path: fileURLToPath(new URL('../../.env', import.meta.url)),
   quiet: true,
 });

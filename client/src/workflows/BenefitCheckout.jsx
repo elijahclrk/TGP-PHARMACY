@@ -1,10 +1,12 @@
 import {fieldClass} from '../inventory/shared'
 import {emptyBenefitDraft} from './benefit-draft'
+import {useAcademicDemo} from '../components/academic-context'
 export default function BenefitCheckout({draft,onChange,disabled}){
+ const academic=useAcademicDemo()
  const set=(key,value)=>onChange({...draft,[key]:value})
  const customer=(key,value)=>set('customer',{...draft.customer,[key]:value})
  const doc=(key,value)=>set('documents',{...draft.documents,[key]:value})
- return <fieldset disabled={disabled} className="my-5 space-y-3 rounded-lg border border-amber-300 p-4"><legend>Local synthetic benefit checkout</legend>
+ return <fieldset disabled={disabled} className="my-5 space-y-3 rounded-lg border border-amber-300 p-4"><legend>{academic?'Cloud academic synthetic benefit checkout':'Local synthetic benefit checkout'}</legend>
   <p>Disposable database only. Internal transaction confirmation; statutory and fiscal approval remain pending.</p>
   <label>Customer benefit<select aria-label="Customer benefit" className={fieldClass} value={draft.benefit} onChange={e=>onChange({...emptyBenefitDraft(),benefit:e.target.value,customer:{name:'',id:'',idType:e.target.value==='pwd'?'pwd_lgu':'osca'}})}><option value="regular">Regular</option><option value="senior">Senior Citizen</option><option value="pwd">PWD</option></select></label>
   {draft.benefit!=='regular'&&<>

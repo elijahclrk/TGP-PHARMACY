@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import {fileURLToPath} from 'node:url';
+import {NOTICE} from '../academic/manifest.js';
 
 // Explicit allowlist: beneficiary identifiers, names and free-text return reasons
 // are never included. Decimal monetary strings stay exact, including above 2^53.
@@ -22,7 +23,7 @@ export function safeSpreadsheetText(value){
   const text=String(value??'Unavailable');
   return /^[\s\u0000-\u001f]*[=+\-@]/.test(text)?"'"+text:text;
 }
-export async function generateReportExport(kind,format,result,filters){
+export async function generateReportExport(kind,format,result,filters,{academicDemo=false}={}){
   const columns=reportColumns[kind];
   if(!columns)throw new Error('Unsupported export');
   const rows=kind==='profit'?[result]:result.data??[];
@@ -34,6 +35,7 @@ export async function generateReportExport(kind,format,result,filters){
     'Category ranks use reconciled units: descending for best-selling (positive units), ascending for slow-moving (including zero). Ties share a dense rank; no revenue-based score is inferred.',
     'Recorded inventory includes expired/today stock. Within-date quantity is an expiry-only measure, excludes expired/today and is unavailable for uncertain quantity/expiry; it is not quarantine certification.',
     'Cost/profit figures are estimates using verified batch costs; unavailable costs are withheld. Not net profit. Discounted-sale profit estimates remain unavailable pending an approved accounting basis.'];
+  if(academicDemo)notes.unshift(NOTICE);
   if(format==='xlsx'){
     const book=new ExcelJS.Workbook();book.creator='TGP Pharmacy';
     const sheet=book.addWorksheet('Report');

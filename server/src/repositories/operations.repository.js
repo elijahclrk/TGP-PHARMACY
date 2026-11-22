@@ -4,12 +4,14 @@ import {createAuthRepository} from './auth.repository.js';
 import {createPurchasingRepository} from './purchasing.repository.js';
 import {receivingCreate} from '../services/purchasing-validation.js';
 import {fingerprint} from '../services/exchange-validation.js';
+import {isAcademic} from '../academic/capabilities.js';
 const fail=(status=409)=>{throw Object.assign(Error('Operational request cannot be completed'),{status});};
 export const preferenceInput=z.object({expected_revision:z.number().int().min(0).max(2147483646),low_stock_dashboard:z.boolean(),upcoming_expiry_dashboard:z.boolean()}).strict();
 export const linkedInput=z.object({po_id:z.number().int().positive().max(2147483647),request_id:z.uuid().transform(v=>v.toLowerCase()),delivery_ref:z.string().trim().min(1).max(200),items:z.array(receivingCreate.shape.items.element.omit({product_id:true}).extend({po_item_id:z.number().int().positive().max(2147483647)})).min(1).max(100)}).strict();
 const resources={preferences:{file:'batch7/010_in_app_notification_preferences.sql',functions:['tgp_notification_preferences_owner'],triggers:['notification_preferences_owner']},operations:{file:'batch14/013_operational_completion.sql',functions:['tgp_linked_receiving_guard','tgp_linked_receiving_status','tgp_linked_order_item_guard'],triggers:['linked_receiving_guard','linked_receiving_item_guard','linked_receiving_status','linked_order_item_guard']}};
-export function createOperationsRepository(provider,{localOnly,tlsVerified}){
- if(!localOnly||!tlsVerified)throw Error('Verified local operations capability required');
+export function createOperationsRepository(provider,capability){
+ const cloud=isAcademic(capability,provider);
+ if(!cloud&&(!capability?.localOnly||!capability?.tlsVerified))throw Error('Verified local operations capability required');
  const auth=createAuthRepository(provider),purchasing=createPurchasingRepository(provider);
  async function schemaReady(c,kind='operations'){
   const spec=resources[kind],sql=await readFile(new URL('../../database/migrations/proposed/'+spec.file,import.meta.url),'utf8'),norm=s=>s.replace(/\s+/g,' ').trim();
@@ -27,7 +29,7 @@ export function createOperationsRepository(provider,{localOnly,tlsVerified}){
  async function order(c,id){const p=await purchasing.detail('orders',id,c);const quantities=(await c.query('SELECT p.po_item_id,p.quantity,coalesce(sum(i.quantity) FILTER(WHERE s.approved_by IS NOT NULL),0)::int AS received FROM purchase_order_items p LEFT JOIN stock_in_items i ON i.po_item_id=p.po_item_id LEFT JOIN stock_ins s USING(stock_in_id) WHERE p.po_id=$1 GROUP BY p.po_item_id ORDER BY p.po_item_id',[id])).rows;return {...p,items:p.items.map(i=>({...i,received:quantities.find(q=>q.po_item_id===i.po_item_id).received,remaining:i.quantity-quantities.find(q=>q.po_item_id===i.po_item_id).received}))};}
  return {
   schemaReady,
-  async availability(actorId){return auth.transaction(async c=>{const u=await auth.findById(actorId,c);if(u?.status!=='active')fail(403);return {local_only:true,metadata:await schemaReady(c),purchasing:u.role!=='employee'&&await schemaReady(c),preferences:u.role==='admin'&&await schemaReady(c,'preferences')};});},
+  async availability(actorId){return auth.transaction(async c=>{const u=await auth.findById(actorId,c);if(u?.status!=='active')fail(403);return {local_only:!cloud,academic_demo:cloud,metadata:await schemaReady(c),purchasing:u.role!=='employee'&&await schemaReady(c),preferences:u.role==='admin'&&await schemaReady(c,'preferences')};});},
   async preferences(id){return tx(id,'preferences',c=>preferences(c,id));},
   async savePreferences(id,raw){const d=preferenceInput.parse(raw);return tx(id,'preferences',async c=>{const current=await preferences(c,id);if(current.revision!==d.expected_revision)fail();if(!current.revision)await c.query('INSERT INTO admin_notification_preferences(user_id,low_stock_dashboard,upcoming_expiry_dashboard,revision,updated_by,updated_at) VALUES($1,$2,$3,1,$1,clock_timestamp())',[id,d.low_stock_dashboard,d.upcoming_expiry_dashboard]);else await c.query('UPDATE admin_notification_preferences SET low_stock_dashboard=$2,upcoming_expiry_dashboard=$3,revision=revision+1,updated_by=$1,updated_at=clock_timestamp() WHERE user_id=$1',[id,d.low_stock_dashboard,d.upcoming_expiry_dashboard]);await auth.audit(c,id,'notifications.preferences_updated:'+id,'notifications');return preferences(c,id);});},
   async order(actor,id){return tx(actor,'operations',c=>order(c,id));},
