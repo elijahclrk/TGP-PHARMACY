@@ -1,0 +1,840 @@
+{
+  "schemaVersion": 1,
+  "projectDate": "2026-11-22",
+  "timezone": "Asia/Manila",
+  "purpose": "Proposed local Git checkpoint only; owner approval pending",
+  "branch": "main",
+  "baseHead": "43b321101d04775ee27394e21773b279b45856b4",
+  "stagedPaths": [],
+  "pathCount": 159,
+  "modifiedTracked": 59,
+  "newUntracked": 100,
+  "hashConvention": "SHA-256 of raw working-tree bytes before Git line-ending normalization. Self entry has no hash by design; no recursive self-hash.",
+  "protectedAppliedMigrations": [
+    {
+      "path": "server/database/migrations/001_phase3_baseline.sql",
+      "sha256": "beb63ee013b74b7d3bde6e6f1d24adaccf7b2ca01dfa2beab7252e4a5c05ead2",
+      "sameAsHead": true
+    },
+    {
+      "path": "server/database/migrations/proposed/002_supported_integrity.sql",
+      "sha256": "dc16e6f9338d53bbb1e39d208d8deb285acb1fd3ea1754e9cffb094227796535",
+      "sameAsHead": true
+    },
+    {
+      "path": "server/database/migrations/proposed/004_lookup_indexes.sql",
+      "sha256": "d327e2845119b31a9b3b509bfc56f21aac3225a0d043dd393195df71626ea23f",
+      "sameAsHead": true
+    }
+  ],
+  "manualReview": {
+    "confirmedLiveSecrets": 0,
+    "unexplainedCandidates": 0,
+    "reviewedFindings": [
+      "CI runtime-generated secret code pattern",
+      "applied-migration checksum digits, not phone numbers",
+      "public dependency deprecation/support email",
+      "isolated fixture signing literal, not a production account",
+      "Noto Sans binary with bundled SIL OFL and provenance"
+    ],
+    "limitations": "Offline text-pattern/manual review, not proof that every possible secret or unchanged historical binary has been detected. Environment/private files not included; no production connection or write."
+  },
+  "files": [
+    {
+      "path": ".dockerignore",
+      "status": "modified",
+      "sha256": "fc076f58cffe4ea173fc8a1b8fc037084d097b4b4efacc53f30edb2c7b6e1859"
+    },
+    {
+      "path": ".gitignore",
+      "status": "modified",
+      "sha256": "b9a2ebc11bcb7da147c79a7050c852747fdc76f83d5d183d5b8ef469e6e523f4"
+    },
+    {
+      "path": "Dockerfile",
+      "status": "modified",
+      "sha256": "4df2f908e8294ba551d47a53e698bfee968be7b53ecf0a78201824272d7908b8"
+    },
+    {
+      "path": "client/src/App.jsx",
+      "status": "modified",
+      "sha256": "dbc132c108b51e417db6166bfd0a4d4a48ec73dc1a7ba09494fae4fb0fb7acda"
+    },
+    {
+      "path": "client/src/App.test.jsx",
+      "status": "modified",
+      "sha256": "79fafcd86bee6693826529e5f51dc5c4aa692db21c45aeb4082cbd1d357a4d82"
+    },
+    {
+      "path": "client/src/auth/AuthProvider.jsx",
+      "status": "modified",
+      "sha256": "10acf4466ba962cf7f2cbe30629f1943c9c27becf8f7cdc810f0e67244e1806c"
+    },
+    {
+      "path": "client/src/auth/api.js",
+      "status": "modified",
+      "sha256": "ca2b7e37e58a8a9e15f8a5ff2a950528cd3f3850b37745438f3078d3eec28904"
+    },
+    {
+      "path": "client/src/components/Workspace.jsx",
+      "status": "modified",
+      "sha256": "51e616d1629e4eb1a1dccd2fd807d126e7c2f504a25c9a7366f6ccadc2bacb94"
+    },
+    {
+      "path": "client/src/components/layout.test.jsx",
+      "status": "modified",
+      "sha256": "f856a6a6635945954e4bd87edde55b3b79ad5b5e02be7da1bb6c7413f3a8bf0b"
+    },
+    {
+      "path": "client/src/inventory/inventory.test.jsx",
+      "status": "modified",
+      "sha256": "4ddb71f944e77d01b5671cb33ae76e7f0d1ebd65efa6acc4089c1656080b5e2c"
+    },
+    {
+      "path": "client/src/inventory/shared.jsx",
+      "status": "modified",
+      "sha256": "0aa655a3f8aa8275e71718567fd1623ea0fdbb60ed814ad61e78c3a660098c35"
+    },
+    {
+      "path": "client/src/notifications/preferences.js",
+      "status": "new",
+      "sha256": "3fd5a65fab0ca5f9ba23f495f45833fed5b928b821b6eb8e182713c6bb66ab68"
+    },
+    {
+      "path": "client/src/notifications/preferences.test.jsx",
+      "status": "new",
+      "sha256": "0218beb0469187c35592857d1740f5a4612ed506c1781db4c2bb2d246ccade03"
+    },
+    {
+      "path": "client/src/pages/Alerts.jsx",
+      "status": "new",
+      "sha256": "6424ebb04a0202abe1a6556c14d71e9fb6d07d9082effed0666a1ca785cf8018"
+    },
+    {
+      "path": "client/src/pages/Approvals.jsx",
+      "status": "new",
+      "sha256": "4dbecb1ec6190fc6cbb08ba64260c59d60505b6e3fc93334b33942e7118e3472"
+    },
+    {
+      "path": "client/src/pages/ControlledWorkflows.jsx",
+      "status": "new",
+      "sha256": "9eab03ca80f9c6adfcc38afa4101dd1d03b6e27d0e80c125e4a182d753c969dc"
+    },
+    {
+      "path": "client/src/pages/Inventory.jsx",
+      "status": "modified",
+      "sha256": "3a735272ae9d934c23c1177abb0c9d10249ce8246e296cac4d7782e541c50e56"
+    },
+    {
+      "path": "client/src/pages/Notifications.jsx",
+      "status": "new",
+      "sha256": "d9abcb9a9a146d843154449e3e51380890844ab37832f79ff2898097f2d5bf62"
+    },
+    {
+      "path": "client/src/pages/Pos.jsx",
+      "status": "modified",
+      "sha256": "51adcc517a7150b1a9a355863e98c9b86588f908c1871fc62b84e574f597ce51"
+    },
+    {
+      "path": "client/src/pages/Products.jsx",
+      "status": "modified",
+      "sha256": "808e7462f5b61c01c298c9c3443b59daa44106890092dd7b62cba705cfeddc23"
+    },
+    {
+      "path": "client/src/pages/Purchasing.jsx",
+      "status": "modified",
+      "sha256": "41beef11c401b1fdad4e3299d27aea0a5fb66482b0540d6dd5ea320cd9b3a468"
+    },
+    {
+      "path": "client/src/pages/ReorderThresholds.jsx",
+      "status": "new",
+      "sha256": "1bf7b0bec9f1bc97475d03daec8fef7d033a36b03c9e47e0b2b314c3a4f66f13"
+    },
+    {
+      "path": "client/src/pages/core-management.test.jsx",
+      "status": "new",
+      "sha256": "0f6aba5fae11be5b8f70c34d44806974a25640deb931fbd25580714d1931106b"
+    },
+    {
+      "path": "client/src/pos.test.jsx",
+      "status": "modified",
+      "sha256": "be8941a71ad9327ea07e4b7846c4e66ca6258048064aaaeb657212e5d96fcdf3"
+    },
+    {
+      "path": "client/src/reports/DashboardSummary.jsx",
+      "status": "modified",
+      "sha256": "847fe4bae563962a695bdec7ef287bd43e0379bbed009d63396dac1f9c4249a5"
+    },
+    {
+      "path": "client/src/reports/ReportPanel.jsx",
+      "status": "modified",
+      "sha256": "ad85f0cacd3bcec0c42ddcf5290cbfd48f12873ac12a4b217dd9d13da6701a03"
+    },
+    {
+      "path": "client/src/reports/reports.test.jsx",
+      "status": "modified",
+      "sha256": "8f1802469a8a0e43e8ea57602dd6144c601e475568ef11b5aed685686b49e46e"
+    },
+    {
+      "path": "client/src/workflows/BatchPicker.jsx",
+      "status": "new",
+      "sha256": "4daf82cc9c3aa8f7173875fa8821319dda684613ca2c9ad7901c2c61592aa031"
+    },
+    {
+      "path": "client/src/workflows/BenefitCheckout.jsx",
+      "status": "new",
+      "sha256": "38c760141c26785e96962bca2cf50c37aa9b993e7dfc436562544e09245c8590"
+    },
+    {
+      "path": "client/src/workflows/BenefitCheckout.test.jsx",
+      "status": "new",
+      "sha256": "3e28e6fe3d884a652cfc5d2029ce2d239ce008b68d027f9d34e6e6ffc716f723"
+    },
+    {
+      "path": "client/src/workflows/BenefitPreparation.jsx",
+      "status": "new",
+      "sha256": "5d2e6ee0d35c0964b45fd5801681856642b8fda2906f634278310cbceb491e65"
+    },
+    {
+      "path": "client/src/workflows/WorkflowDetails.jsx",
+      "status": "new",
+      "sha256": "ae92ca61b086fb995ae81c12069670360a27cf6e66c2d190e3799afff3fc84b8"
+    },
+    {
+      "path": "client/src/workflows/WorkflowGate.jsx",
+      "status": "new",
+      "sha256": "919f29bff9be0644c909248adb5c7ab435e0575d4a30d3d8ee5497da2ac6bd13"
+    },
+    {
+      "path": "client/src/workflows/benefit-draft.js",
+      "status": "new",
+      "sha256": "6c028dc6baec39ef32478b06abc1006d30c63ac6aaa73d82fc682320dff3484e"
+    },
+    {
+      "path": "client/src/workflows/time.js",
+      "status": "new",
+      "sha256": "a42a96651034ba181a7fe659b412a3d44b4b2a4ed7d03653290d5c6a174394c3"
+    },
+    {
+      "path": "client/src/workflows/time.test.js",
+      "status": "new",
+      "sha256": "f0e20cd224c0c77864193818c97300877cb77b3353f847489263e62824f72e3e"
+    },
+    {
+      "path": "client/src/workflows/useWorkflowCapabilities.js",
+      "status": "new",
+      "sha256": "1d05478054131904e39278843c7b462e06bf72953d3a5fdac863ca9a2178d6d7"
+    },
+    {
+      "path": "client/src/workflows/workflows.test.jsx",
+      "status": "new",
+      "sha256": "a99feed632936756861e2867f058ac1718ddaa63b9776feb4a99d5c150c69e59"
+    },
+    {
+      "path": "docs/BUG_LOG.md",
+      "status": "modified",
+      "sha256": "0a0d1a4c6e8ed08d4e1afecbe351f1c3687c94f0bc9350754fbed869b339aa8c"
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "status": "modified",
+      "sha256": "794e8752c0b67d925c0a22fde22ad3a669384b75b8236bfec759850b437c5cf1"
+    },
+    {
+      "path": "docs/PHASE4_READINESS_AUDIT.md",
+      "status": "modified",
+      "sha256": "2f10b9fbe3b637eacb9cb5c442886dca1e39d3f171dee3bb13f7381d749006b9"
+    },
+    {
+      "path": "docs/USER_MANUAL.md",
+      "status": "modified",
+      "sha256": "c9aa9757779b4bf6f8fd33ddaca9bbc0539d97ff1a0ce658133290d20cb09d46"
+    },
+    {
+      "path": "docs/phase4/BATCH10_RESULTS.md",
+      "status": "new",
+      "sha256": "87ced932c31ebcbba1f53ecb992c6a5877bc8f24adb059b5d26402a71835720e"
+    },
+    {
+      "path": "docs/phase4/BATCH11_CHECKPOINT_FILES.md",
+      "status": "new",
+      "sha256": "715b5bc6b12a6df22ee15813b112534e4eaf3d54be3894f824bd75814482ce9a"
+    },
+    {
+      "path": "docs/phase4/BATCH11_CHECKPOINT_MANIFEST.json",
+      "status": "new",
+      "sha256": null,
+      "selfHashIntentionallyOmitted": true
+    },
+    {
+      "path": "docs/phase4/BATCH11_RESULTS.md",
+      "status": "new",
+      "sha256": "050332e5e954450445ffa16f99a0a662b3816521bb1c902d73061babd8b37cfc"
+    },
+    {
+      "path": "docs/phase4/BATCH11_UAT_WALKTHROUGH.md",
+      "status": "new",
+      "sha256": "18889a4942e4ec269890fcff7f991669b594fe0cc902cc76f23b1f9ad4488e05"
+    },
+    {
+      "path": "docs/phase4/BATCH2_PREPARATION.md",
+      "status": "new",
+      "sha256": "1326514c669263b837d853fcf3faaa3873f97c55ef51e3bcc9af1859a2d86fea"
+    },
+    {
+      "path": "docs/phase4/BATCH3_RESULTS.md",
+      "status": "new",
+      "sha256": "9d035d2be1f0617fff1830889be17794114d9f570ee5ffccc82d28867e4163c9"
+    },
+    {
+      "path": "docs/phase4/BATCH4_RESULTS.md",
+      "status": "new",
+      "sha256": "31ef970fdfb2820313257740cc9c38c056b26664e9c8c1ff6220a53db3d24d82"
+    },
+    {
+      "path": "docs/phase4/BATCH5_RESULTS.md",
+      "status": "new",
+      "sha256": "cdfd7d3533b160b87826c9100079bb39a78351b65efe93ffe055a401bdb743cf"
+    },
+    {
+      "path": "docs/phase4/BATCH6_QA_RESULTS.md",
+      "status": "new",
+      "sha256": "4a3edfaed1586e20da547560175936a69b7026d04b6aa4eb0ad975dc0c597730"
+    },
+    {
+      "path": "docs/phase4/BATCH7_OPERATIONAL_RULES.md",
+      "status": "new",
+      "sha256": "d8e8030b554ee6b7f89d67b2e96edefec4ef6009c4dc7b6a869b0097b3a7276b"
+    },
+    {
+      "path": "docs/phase4/BATCH7_RESULTS.md",
+      "status": "new",
+      "sha256": "876337702c8a362c3c64eead1c5ba0b6e6878a0cf572c14bf937b1c6e37aca45"
+    },
+    {
+      "path": "docs/phase4/BATCH7_UAT_WALKTHROUGH.md",
+      "status": "new",
+      "sha256": "29851320612beb3ce415df87d8f52be736505e829b3c749e981751fc1c7b2d74"
+    },
+    {
+      "path": "docs/phase4/BATCH8_CLIENT_WALKTHROUGH.md",
+      "status": "new",
+      "sha256": "22414dd72253384c5212c8f22e2fec3e07a89b63d95f03e7fa5f70dc3482b41b"
+    },
+    {
+      "path": "docs/phase4/BATCH8_DEMO_HANDOFF.md",
+      "status": "new",
+      "sha256": "fd8e11671c2670afa461c165e881ba51cd141ed4df974117c1dcebd860206c23"
+    },
+    {
+      "path": "docs/phase4/BATCH8_RESULTS.md",
+      "status": "new",
+      "sha256": "7cd26534964b632dcb77d93a3c9edbafb8ba7c61164ac0c5108e86168430ed2e"
+    },
+    {
+      "path": "docs/phase4/BATCH9_SENIOR_PWD_RESEARCH.md",
+      "status": "new",
+      "sha256": "4e280692294fc96d8dc8401bc85f40c3935f24f5111fc6edae8e726d80943dd5"
+    },
+    {
+      "path": "docs/phase4/BATCH9_SENIOR_PWD_TECHNICAL_SPEC.md",
+      "status": "new",
+      "sha256": "c5e367208b90f98ac7a687a6fd865b98d7fc738fc83f84888be4f512cbe40061"
+    },
+    {
+      "path": "docs/phase4/BATCH9_VALIDATION_CHECKLIST.md",
+      "status": "new",
+      "sha256": "78b47be0d7c8d215f51489cde825e019c425e32ef23241e7890bfcf096f698cf"
+    },
+    {
+      "path": "docs/phase4/DEVELOPMENT_BATCH1_DESIGN.md",
+      "status": "new",
+      "sha256": "8ad6932e02a2292709c921e9fdae3b247aaf02a75c6c28f990ce329242c6c228"
+    },
+    {
+      "path": "docs/phase4/DEVELOPMENT_BATCH1_RESULTS.md",
+      "status": "new",
+      "sha256": "a8ee8d30df74ed3d674bd869646b0f22b561e9323144c722c3064173a6b0f85d"
+    },
+    {
+      "path": "docs/phase4/FINAL_REQUIREMENTS_MATRIX.md",
+      "status": "new",
+      "sha256": "910773863da23179ffa9693b6fd461cb85bb7f23b58bf01aec48f65417fdeb17"
+    },
+    {
+      "path": "docs/phase4/LOCAL_POSTGRES_TEST_RESULTS.md",
+      "status": "new",
+      "sha256": "c436567d971b86b21a37c011348c2e6ac50e8dfe7599c97ac507ddcd6c2aef53"
+    },
+    {
+      "path": "docs/phase4/RELEASE_CHECKLIST.md",
+      "status": "new",
+      "sha256": "aac6badc7fd9ce2bd0f12f31ed4d55cf2ad564cdb776f69027fbb9c4e3036e1a"
+    },
+    {
+      "path": "docs/phase4/UAT_CHECKLIST.md",
+      "status": "new",
+      "sha256": "5e2144a98930a1d12c79d4eb22df8c441a9953ddfc8679f269347aa0fd89dc99"
+    },
+    {
+      "path": "docs/phase4/WIREFRAME_ALIGNMENT.md",
+      "status": "modified",
+      "sha256": "2ce3c61357d77d20092d16b6fa60635a8c3666416f3ad5ec0d2051dcef334db5"
+    },
+    {
+      "path": "server/INVENTORY.md",
+      "status": "modified",
+      "sha256": "493e6ac1095b83bcbb02c726fd3b1870578e9ddd876cdfc7b4701b21b9b8c5bf"
+    },
+    {
+      "path": "server/POS.md",
+      "status": "modified",
+      "sha256": "1f62396cafdf20c3f6f2cd104e5206c8905383b5ef04cc132a1025c043671507"
+    },
+    {
+      "path": "server/PURCHASING.md",
+      "status": "modified",
+      "sha256": "59f707c8034592226d5d61d65f5d5a135d65330b2e94e96d7f6a1a11d55c6a7e"
+    },
+    {
+      "path": "server/REPORTS.md",
+      "status": "modified",
+      "sha256": "4391ee8634237d632da29d3c50ea3c9bab450463c36a742176d1ef4c6ae5058a"
+    },
+    {
+      "path": "server/database/README.md",
+      "status": "modified",
+      "sha256": "52c494e239914e5c11c58502046b7cbc6ce88befda59a7fb5492bd05630588a0"
+    },
+    {
+      "path": "server/database/migrations/proposed/003_return_sale_item_link.sql",
+      "status": "modified",
+      "sha256": "17359d9b789beb88e4da1e25ee0514032dec1616bf44d1db3cee22020c1c5cd9"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch1/007_decision_workflows.sql",
+      "status": "new",
+      "sha256": "fa069c158b9ce84981824c4111473453c7856ddc68b3e654c8c28415c8ba63ca"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch1/008_return_dispositions.sql",
+      "status": "new",
+      "sha256": "9a0ee47eaa4e2c5c1b33d85c4326bf608e321d7dbde533805af5d06e56a7a9d5"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch1/009_discount_financial_snapshots.sql",
+      "status": "new",
+      "sha256": "3637576bcfedc1b93e2b51c58eb425cc1734db8e53c9d95fbc1ffa927f0ff9f9"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch1/workflow-policy.mjs",
+      "status": "new",
+      "sha256": "984e41ebe18e19a11e544517bc123c1bb2397b945785c0d7c30db67d647190c6"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch10/011_local_benefit_checkout.sql",
+      "status": "new",
+      "sha256": "96f9275891c8972d538cf73f164190e524afd335dda22f684006d735bde6fc52"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch7/010_in_app_notification_preferences.sql",
+      "status": "new",
+      "sha256": "4151ac052bab9f2f78fd62b7d2f7a4e71272383701866cbd7e07551102479168"
+    },
+    {
+      "path": "server/database/validate-proposals.mjs",
+      "status": "modified",
+      "sha256": "46114286258ebb84819df1459fcebd87784729555aaf19cb7fe193b8bbfe4f52"
+    },
+    {
+      "path": "server/demo/workflows.mjs",
+      "status": "modified",
+      "sha256": "244cd04dc80b3df42679a49459166ac93ac5c8597c58b7c553cbcfb26fda32d6"
+    },
+    {
+      "path": "server/package-lock.json",
+      "status": "modified",
+      "sha256": "ad0a09d64d059ef24e26895c47e6ea63c4c4d0556940c2b31f7565f0f6b9cefb"
+    },
+    {
+      "path": "server/package.json",
+      "status": "modified",
+      "sha256": "69f916d433f188c0cf6795066f17915e8dd4995de889e0322a4fdccaba1ee286"
+    },
+    {
+      "path": "server/src/app.js",
+      "status": "modified",
+      "sha256": "0e82a2d7e2dc80ac60e272274d3ec30df87deab54f024ebb61ac279958c0e98f"
+    },
+    {
+      "path": "server/src/assets/fonts/NotoSans.ttf",
+      "status": "new",
+      "sha256": "bfb7bb691513f12e734dc346c03a03f784912432d7e3fa8e56efcf906fe86b3d"
+    },
+    {
+      "path": "server/src/assets/fonts/OFL.txt",
+      "status": "new",
+      "sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"
+    },
+    {
+      "path": "server/src/assets/fonts/README.md",
+      "status": "new",
+      "sha256": "7602ead5f46c3eabd250cfc2d16235b0214a6335ed2c7cca43c8308bd5ecddc8"
+    },
+    {
+      "path": "server/src/repositories/inventory.repository.js",
+      "status": "modified",
+      "sha256": "79ee6d5e1d5de6b4f5e9dc42b937d16e1a4b25f144bce3673eaf8e0cf75f765f"
+    },
+    {
+      "path": "server/src/repositories/local-benefits.repository.js",
+      "status": "new",
+      "sha256": "f26f1126667936fee5c27a573a65dcea2c01375bca7377566586516560ea55fe"
+    },
+    {
+      "path": "server/src/repositories/pos.repository.js",
+      "status": "modified",
+      "sha256": "6df31d6f73ed0f336215c803dd9e0a0d433306a2029276f0d9a9f0ce7aa5b93f"
+    },
+    {
+      "path": "server/src/repositories/purchasing.repository.js",
+      "status": "modified",
+      "sha256": "b1b78018fa5e05c9eb58f6d83c826ba59d5ed78ed17f9a6214de5a6d18f5e1f0"
+    },
+    {
+      "path": "server/src/repositories/reports.repository.js",
+      "status": "modified",
+      "sha256": "086839a8940ec6369d49a2f030ca3cb5174e61341bda091339d237f7bab4ad02"
+    },
+    {
+      "path": "server/src/repositories/workflows.repository.js",
+      "status": "new",
+      "sha256": "a0627d62e5eb17533a33ae7147f6abdcc3cf66f8a5a60e4d4651d8f018bfa66e"
+    },
+    {
+      "path": "server/src/routes/pos.routes.js",
+      "status": "modified",
+      "sha256": "d08472e65820763a3ccb5bc74c970532de8c6b23d8d4b1da10d588983ac8ab53"
+    },
+    {
+      "path": "server/src/routes/reports.routes.js",
+      "status": "modified",
+      "sha256": "1665414b0dcc67bc0f00a281baace465e254ffd6ebe934e856afa09a69249e04"
+    },
+    {
+      "path": "server/src/routes/workflows.routes.js",
+      "status": "new",
+      "sha256": "f5998e62602ea9e59bc08d4b2ecd96d6f9b53996e8199007c0cf5af9f123d459"
+    },
+    {
+      "path": "server/src/scripts/verify-batch1-readonly.js",
+      "status": "new",
+      "sha256": "5c107985070058eeb59410e72efc1ea99922cfae9576ac7c555f0f0c8225accf"
+    },
+    {
+      "path": "server/src/services/benefit-preparation.js",
+      "status": "new",
+      "sha256": "b38ceb089c6555aae5a3f1816e8659f4c5e06c12447ea2974951c21e75c0dc86"
+    },
+    {
+      "path": "server/src/services/expiry-policy.js",
+      "status": "new",
+      "sha256": "6af50744fbe63748a3e801489e2d68e5f3b5713f30fd1bcbc82d7a960f92ae8d"
+    },
+    {
+      "path": "server/src/services/inventory-validation.js",
+      "status": "modified",
+      "sha256": "b85d1470f8ec1c97c5c47d031398a7e42ddc7203adfa6e85434d061761deb522"
+    },
+    {
+      "path": "server/src/services/local-benefit-calculation.js",
+      "status": "new",
+      "sha256": "c06639a8041d25745d5969d81f09aec2d2087ba98c4e62078da4f490872d174d"
+    },
+    {
+      "path": "server/src/services/pos-quotes.js",
+      "status": "new",
+      "sha256": "afaeecd38af881d1ff949a40eab9d27e1627af892ea6eb469f2a7cd445b36985"
+    },
+    {
+      "path": "server/src/services/pos-validation.js",
+      "status": "modified",
+      "sha256": "65fef5a640699296ac41effc5b0b30dfb5c7abd98d7a98bcedf9e117a32cbd54"
+    },
+    {
+      "path": "server/src/services/prepared-benefits.js",
+      "status": "new",
+      "sha256": "406a9be09b28cbe7dd61820d9083ea94f98e70bc03fd8bcf948477f4f44e037f"
+    },
+    {
+      "path": "server/src/services/prepared-workflows.js",
+      "status": "new",
+      "sha256": "0794f2132bdd615f9380a0645932a60c12dd2eca92ca3bf1f11057489e0f499c"
+    },
+    {
+      "path": "server/src/services/purchasing-validation.js",
+      "status": "modified",
+      "sha256": "18de65629b00050e44c59c763ac1458e70fa7eefb7be9969248463cf52e7b99f"
+    },
+    {
+      "path": "server/src/services/report-exports.js",
+      "status": "new",
+      "sha256": "858881e0da30713301dcb9946385630e6428cd40959e75837e2b95eb34268bdd"
+    },
+    {
+      "path": "server/src/services/report-validation.js",
+      "status": "modified",
+      "sha256": "acd0c27400237a33516d87d8e05187cd27ebf962978454d10089f72a5b316e49"
+    },
+    {
+      "path": "server/src/services/verified-benefit-quotes.js",
+      "status": "new",
+      "sha256": "4f9d921fa70b6482299a3f580f4112153f9bacc0a4457a2c1631243386ab918b"
+    },
+    {
+      "path": "server/src/services/workflow-validation.js",
+      "status": "new",
+      "sha256": "b7440e15ac3579339c5fb77cba49151e1993af996bc121590677926ca7091e02"
+    },
+    {
+      "path": "server/test/accounts-http.test.js",
+      "status": "modified",
+      "sha256": "02d3403f62e960dbe2804f93d95601b1293b78883014add00c5308b1e11ea1d5"
+    },
+    {
+      "path": "server/test/approvals-http.test.js",
+      "status": "new",
+      "sha256": "ad369e5cc302579df217348c511ee22c884e499fabdfbbd28dc25d7fe2f01da5"
+    },
+    {
+      "path": "server/test/audit.test.js",
+      "status": "modified",
+      "sha256": "f12bf90a82ea2ec592fb0719d22f90387aa17accde54d33e245f8b4f719241da"
+    },
+    {
+      "path": "server/test/auth-http.test.js",
+      "status": "modified",
+      "sha256": "69744ecc7599775e8420a346a216604bd757c7db6743a45ae4830a04fd62d62e"
+    },
+    {
+      "path": "server/test/auth.integration.test.js",
+      "status": "modified",
+      "sha256": "133f81d551d7ed82033673b4a6cf91421096a3fab94995b4f83949c32ea13170"
+    },
+    {
+      "path": "server/test/benefit-preparation.test.js",
+      "status": "new",
+      "sha256": "9475e3e1bd82619b093bf2c56cd6814aab3d4303ee01c2ce2b013bedd52f191b"
+    },
+    {
+      "path": "server/test/container-packaging.test.js",
+      "status": "new",
+      "sha256": "2ac703c0258aa95796edfd05e24bcdfd6d117b89961ec494cb8494d1b4154ca2"
+    },
+    {
+      "path": "server/test/database.test.js",
+      "status": "modified",
+      "sha256": "20bf2e40c798389399916c7272824625525967bb3ce42467f59dca9c0fa799cc"
+    },
+    {
+      "path": "server/test/disposable-database.test.js",
+      "status": "new",
+      "sha256": "b081c2ec4a380807dbbec0496a2ddf10f197de960240e2eaaca94b76297450a8"
+    },
+    {
+      "path": "server/test/expiry-policy.test.js",
+      "status": "new",
+      "sha256": "d3b7ae1b3731571217557a641658d6f9eb98eaee9d544c45f09a421854d59204"
+    },
+    {
+      "path": "server/test/frontend-serving.test.js",
+      "status": "modified",
+      "sha256": "e80656813eb39835e8db7ee37b9e4335e2ebce76e6b9a1421a45be00c30ada9b"
+    },
+    {
+      "path": "server/test/inventory-validation.test.js",
+      "status": "modified",
+      "sha256": "4dc4e9753e6cd44af6b1dfe23ee1d7d9d632af670a75dc0f9240be3eb64f32d4"
+    },
+    {
+      "path": "server/test/inventory.integration.test.js",
+      "status": "modified",
+      "sha256": "c647663986e0308f4bb96f23153c78fba4295780d8dc154f30e18fa66d29d21d"
+    },
+    {
+      "path": "server/test/local-benefit-calculation.test.js",
+      "status": "new",
+      "sha256": "7787b2020e5c2feef03c2b9e87bfbd3a0ad5272ca448f87d3443358ad174009f"
+    },
+    {
+      "path": "server/test/local-benefit-migrations.integration.test.js",
+      "status": "new",
+      "sha256": "e301c18668c1d66bc9fccfbbeeadeefd526871626fc148b5923e6254fe92b181"
+    },
+    {
+      "path": "server/test/local-benefits-http.test.js",
+      "status": "new",
+      "sha256": "ed4e79af7fb663ff98773737e543bcb52e5cbe2d2dee52bb919e05fb5336ed1f"
+    },
+    {
+      "path": "server/test/local-benefits.integration.test.js",
+      "status": "new",
+      "sha256": "f874e3262e07556dea53f3cbe560dc2c0cd9fecdce22c26995d36ff95a974aa2"
+    },
+    {
+      "path": "server/test/local-demo.test.js",
+      "status": "new",
+      "sha256": "c1d208dc7987b5ff987e13420ec80bdb507a1f455b0d1e82692bc9726e0e027a"
+    },
+    {
+      "path": "server/test/local-http.test.js",
+      "status": "new",
+      "sha256": "a374faa88dda196ea110da47a205c56e58ef7313f59d658b8ab7cd5ab858d3e9"
+    },
+    {
+      "path": "server/test/pos-recovery.test.js",
+      "status": "modified",
+      "sha256": "f41f40fecb9f0f54f039b6a0ca023bd5d50b41e3839eb3c17bf4d83493e89f09"
+    },
+    {
+      "path": "server/test/pos.integration.test.js",
+      "status": "modified",
+      "sha256": "8618ec84da69099fd46630c27862cf84e1ad127412b8a830911dedb272e39097"
+    },
+    {
+      "path": "server/test/prepared-benefits.test.js",
+      "status": "new",
+      "sha256": "0b491a1a0104df936c274b961e389ba3e414e1ee64cd8bff102a9449b029208d"
+    },
+    {
+      "path": "server/test/prepared-workflows.integration.test.js",
+      "status": "new",
+      "sha256": "05a13f764a71ab12f13a3816e20175df5f23a284f4c92f3f14648e696a645b3a"
+    },
+    {
+      "path": "server/test/prepared-workflows.test.js",
+      "status": "new",
+      "sha256": "9bb947daffae423cb3656be8371daeb08fdcf4b83b919f729499a41d0cc1cda2"
+    },
+    {
+      "path": "server/test/product-images.integration.test.js",
+      "status": "modified",
+      "sha256": "22b7be879732ec5d3c6270b0c2924b6d6f01dd5877e32e69ccccfd0db85fa5b1"
+    },
+    {
+      "path": "server/test/product-images.test.js",
+      "status": "modified",
+      "sha256": "7bfbf83f8307cc394680f3a4e5e6e4319c26715a8a0bae94a4a2663942deba04"
+    },
+    {
+      "path": "server/test/purchasing.integration.test.js",
+      "status": "modified",
+      "sha256": "b5515caa8c42de3d6deeb8dcf84ae8886101aaf73c704ec336a5f1753efcc6d1"
+    },
+    {
+      "path": "server/test/report-exports.test.js",
+      "status": "new",
+      "sha256": "7c652eb7d359e889f761934ef06a02912fb55167b8e29d58f735763390344d91"
+    },
+    {
+      "path": "server/test/reports.integration.test.js",
+      "status": "modified",
+      "sha256": "4115dc76a94ba7272c069b9f1e4ddfeaf0ac89fba040ca6223830bcc5bb7aeb3"
+    },
+    {
+      "path": "server/test/support/benefit-fixture.js",
+      "status": "new",
+      "sha256": "3dc57be8f74fce71968cd218c86559a72386b58b278caa027a19183a8f07003e"
+    },
+    {
+      "path": "server/test/support/disposable-database.js",
+      "status": "new",
+      "sha256": "b2fcee6a2678dbb5d42fececac322b7b77e9e2023953a576a422f6893a4b21b0"
+    },
+    {
+      "path": "server/test/support/packaged-workflow-fixture.js",
+      "status": "new",
+      "sha256": "2c53b76b0450cd08dc1ece2d8c164cdaf4f5ef86dfcfeb18725d34be143a9b37"
+    },
+    {
+      "path": "server/test/support/workflow-fixture.js",
+      "status": "new",
+      "sha256": "d7cd220907a0aae6621e5ab90ad0b5b716769e65dbb4bdd5d8057910af538de8"
+    },
+    {
+      "path": "server/test/thresholds-http.test.js",
+      "status": "new",
+      "sha256": "2eaf01670912701daa1d989f3ad4997ab04a558a5e88fa8fe248031b02b06ece"
+    },
+    {
+      "path": "server/test/verified-benefit-quotes.test.js",
+      "status": "new",
+      "sha256": "2401dbd341f5ff65dfef3ad88531b58b465903dbcdff267fc0bda7eecd31a48a"
+    },
+    {
+      "path": "server/test/workflow-design.test.js",
+      "status": "new",
+      "sha256": "894b81e09b94790a166d0cf97df8af1073d3a52cdf656f2468ad2c5a35aa988f"
+    },
+    {
+      "path": "server/test/workflow-migrations.integration.test.js",
+      "status": "new",
+      "sha256": "9456324913d3468d9e788e7a902f61a62c3d35ee72eadbb9cc525d51b89026a7"
+    },
+    {
+      "path": "server/test/workflows-http.test.js",
+      "status": "new",
+      "sha256": "359819fdc25d510a66e0cb8e214505573edd462ece2113325d52d8744252cdd1"
+    },
+    {
+      "path": "server/testing/batch10-browser.mjs",
+      "status": "new",
+      "sha256": "f4b5b0bd27c4a93c2abeac9b1157b6b571db76968311b27d9f1609ee91a02d66"
+    },
+    {
+      "path": "server/testing/batch11-checkpoint.mjs",
+      "status": "new",
+      "sha256": "98ff24bf8b6f80b17abea72f4c1652018742b3b08ad45b2d9229f8d6f85c8124"
+    },
+    {
+      "path": "server/testing/batch4-browser.mjs",
+      "status": "new",
+      "sha256": "7924c8674a3629bdc42af8d70c0aede936500daea07860184afb29b0e76ba654"
+    },
+    {
+      "path": "server/testing/batch4-uat.mjs",
+      "status": "new",
+      "sha256": "af155aaa8432bb0873645365472dfb9c96f0992c21160cdf0e03fc0358601e13"
+    },
+    {
+      "path": "server/testing/local-benefit-runtime.mjs",
+      "status": "new",
+      "sha256": "74e98905dd9bf2ebcbf6f39ccfb320fce53770137bc2541eec6daa4ec1248d1e"
+    },
+    {
+      "path": "server/testing/local-demo.mjs",
+      "status": "new",
+      "sha256": "99a543916b37be5559ebd97aa08c853029c656a44365808298667070357a4ee8"
+    },
+    {
+      "path": "server/testing/local-http.mjs",
+      "status": "new",
+      "sha256": "2b7646f31bebde1042dee177edd008c9cb678246e3be23c46272b6af4879dcea"
+    },
+    {
+      "path": "server/testing/local-postgres.mjs",
+      "status": "new",
+      "sha256": "9319a0446a4d0f9d695df551453bffa1c33aa5bc6d91e750dc25e5a64317bdc5"
+    },
+    {
+      "path": "server/testing/local-uat-app.mjs",
+      "status": "new",
+      "sha256": "7af8dde981dd8b6841c68211b81b39667cab546d4536fb01e401e9ad830574c0"
+    },
+    {
+      "path": "server/testing/verify-uat.mjs",
+      "status": "new",
+      "sha256": "fb8b212c0bf8c6d9fc08aca3f78db6702bbb4b9fbc1c4fc6cce27b52947a9473"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "tgp-pharmacy-server",
+  "version": "1.0.0",
+  "description": "TGP Pharmacy REST API",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon --watch src --ext js,json src/server.js",
+    "start": "node src/server.js",
+    "db:check": "node src/scripts/check-db.js",
+    "test": "node --test --test-concurrency=1",
+    "admin:bootstrap": "node src/scripts/bootstrap-admin.js",
+    "demo:config": "node demo/demo.mjs config",
+    "demo:init": "node demo/demo.mjs init",
+    "demo:seed": "node demo/demo.mjs seed",
+    "demo:verify": "node demo/demo.mjs verify",
+    "demo:start": "node demo/demo.mjs start",
+    "test:auth:db": "node --test test/auth.integration.test.js",
+    "test:inventory:db": "node --test test/inventory.integration.test.js",
+    "test:purchasing:db": "node --test test/purchasing.integration.test.js",
+    "test:pos:db": "node --test test/pos.integration.test.js",
+    "test:reports:db": "node --test test/reports.integration.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "module",
+  "dependencies": {
+    "argon2": "^0.45.2",
+    "cloudinary": "^2.11.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "exceljs": "^4.4.0",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.5",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "pdfkit": "^0.21.0",
+    "pg": "^8.23.1",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "3.1.11",
+    "pdfjs-dist": "^6.5.438"
+  },
+  "private": true,
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

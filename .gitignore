@@ -1,0 +1,74 @@
+# Environment files at any depth. Templates must contain placeholders only.
+.env
+.env.*
+!.env.example
+
+# Original request form contains personal information; keep local only.
+/docs/phase1/TGP_SystemRequestForm.pdf
+
+# Dependencies and generated build/test outputs
+node_modules/
+dist/
+dist-ssr/
+build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Logs, tool caches, and temporary files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.cache/
+.npm/
+.vite/
+.vite-temp/
+.eslintcache
+.stylelintcache
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.local
+
+# Local credentials and private key material
+.aws/
+.ssh/
+.npmrc
+.netrc
+.git-credentials
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Disposable PostgreSQL and browser-review material is never checkpoint content.
+tgp-pg-*/
+tgp_uat_*/
+private.json
+private-uat.json
+*.crt
+*.crl
+*.csr
+playwright-report/
+test-results/
+
+# Local editor and operating-system files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
