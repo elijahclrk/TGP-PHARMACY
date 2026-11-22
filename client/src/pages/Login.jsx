@@ -4,6 +4,7 @@ import { useAuth } from '../auth/auth-context'
 import Brand from '../components/Brand'
 import { fieldClass, buttonClass } from '../inventory/shared'
 import Icon from '../components/Icon'
+import AcademicDemoNotice from '../components/AcademicDemoNotice'
 
 export default function Login() {
   const { user, login, unavailable } = useAuth()
@@ -24,9 +25,12 @@ export default function Login() {
     <section className="login-brand-panel"><Brand light /><div className="login-message"><p>Lawang Bato Branch</p><h2>Better care.<br /> Every day.<br /> For everyone.</h2><span>Your pharmacy workspace for faster service,<br className="hidden sm:block" /> safer stock, and a healthier community.</span></div><p className="login-tagline">Affordable healthcare. Trusted by generations.</p><span className="login-cross" aria-hidden="true">+</span></section>
     <section className="login-form-panel">
       <div className="login-form-content">
-        <p className="login-eyebrow">Your pharmacy workspace</p>
-        <h1>Welcome back.</h1>
-        <p className="mt-3 text-sm text-slate-500">Sign in to start your day at TGP Lawang Bato.</p>
+        <header>
+          <p className="login-eyebrow">Your pharmacy workspace</p>
+          <h1>Welcome back.</h1>
+          <p className="mt-3 text-sm text-slate-500">Sign in to start your day at TGP Lawang Bato.</p>
+          <AcademicDemoNotice compact />
+        </header>
         <form onSubmit={submit} className="mt-8 space-y-5">
           {(error || unavailable) && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error || 'Unable to verify your session. Please try signing in again.'}</p>}
           <div><label htmlFor="username" className="mb-2 block text-sm font-semibold">Username</label>

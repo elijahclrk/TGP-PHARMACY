@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Brand from './Brand'
 import Icon from './Icon'
+import AcademicDemoNotice from './AcademicDemoNotice'
 import { useAuth } from '../auth/auth-context'
 import {useWorkflowCapabilities} from '../workflows/useWorkflowCapabilities'
 
@@ -94,7 +95,10 @@ export default function Workspace({ children }) {
     <div className="workspace-body" inert={menuOpen}>
       <header className="workspace-header">
         <button type="button" ref={menuButton} className="mobile-menu-button ui-button ui-button-secondary" aria-expanded={menuOpen} aria-controls="workspace-navigation" onClick={() => setMenuOpen(value => !value)}>Menu</button>
-        <p className="workspace-breadcrumb">Workspace <span aria-hidden="true">/</span> {page}</p>
+        <div className="workspace-header-context">
+          <p className="workspace-breadcrumb">Workspace <span aria-hidden="true">/</span> {page}</p>
+          <AcademicDemoNotice compact />
+        </div>
         <div className="workspace-account"><span className="workspace-status"><i aria-hidden="true" />Signed in</span>
           <Link className="inventory-alert-link" to="/alerts" aria-label="View inventory alerts"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg></Link>
           <span className="account-avatar" aria-hidden="true">{(user.full_name || user.username || 'U').split(/\s+/).slice(0, 2).map(part => part[0]).join('')}</span>

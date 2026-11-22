@@ -27,7 +27,7 @@ function Protected({ role, management, children }) {
 }
 function AppRoutes() {
   const { user, loading } = useAuth()
-  if (loading) return <main className="flex min-h-svh items-center justify-center bg-green-50 text-green-900" role="status">Checking your session…</main>
+  if (loading) return <main className="flex min-h-svh flex-col items-center justify-center gap-2 bg-green-50 text-green-900"><AcademicDemoNotice compact /><p role="status">Checking your session…</p></main>
   return <Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/products" element={<Protected><Products /></Protected>} />
@@ -48,5 +48,5 @@ function AppRoutes() {
   </Routes>
 }
 export default function App() {
-  return <AcademicDemoProvider><AcademicDemoNotice/><BrowserRouter><AuthProvider><AppRoutes /></AuthProvider></BrowserRouter></AcademicDemoProvider>
+  return <AcademicDemoProvider><BrowserRouter><AuthProvider><AppRoutes /></AuthProvider></BrowserRouter></AcademicDemoProvider>
 }
