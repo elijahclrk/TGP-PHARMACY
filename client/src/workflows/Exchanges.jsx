@@ -5,6 +5,8 @@ import {useInventory} from '../inventory/useInventory'
 import {buttonClass,secondaryClass,fieldClass} from '../inventory/shared'
 import Modal from '../components/Modal'
 import {workflowTime} from './time'
+import AcademicDemoNotice from '../components/AcademicDemoNotice'
+import {useAcademicDemo} from '../components/academic-context'
 
 export default function Exchanges({approvalsOnly=false}){
  const cap=useInventory('/exchanges/availability')
@@ -12,6 +14,7 @@ export default function Exchanges({approvalsOnly=false}){
  return <ExchangeWorkspace approvalsOnly={approvalsOnly}/>
 }
 function ExchangeWorkspace({approvalsOnly}){
+ const academic=useAcademicDemo()
  const {user}=useAuth(),key='tgp-exchange-attempt:'+user.user_id
  const [revision,setRevision]=useState(0),[state,setState]=useState(approvalsOnly?'pending':'all'),[selected,setSelected]=useState(null)
  const [error,setError]=useState(''),[busy,setBusy]=useState(false),[sources,setSources]=useState([]),[claims,setClaims]=useState({}),[cart,setCart]=useState({}),[reason,setReason]=useState(''),[route,setRoute]=useState('voluntary'),[quote,setQuote]=useState(null),[search,setSearch]=useState('')
@@ -24,7 +27,7 @@ function ExchangeWorkspace({approvalsOnly}){
  function changed(work){work();setQuote(null)}
  async function recover(){await run(async()=>{const r=await requestJson(attempt.operation==='create'?'/exchanges/resolve-request':`/exchanges/${attempt.exchange_id}/resolve`,{method:'POST',body:JSON.stringify({request_id:attempt.request_id})});if(r.data.receipt)setSelected(r.data.receipt.exchange_id);remember(null);setQuote(null);refresh()})}
  return <section className="my-6 rounded-xl border bg-white p-5" aria-label="Product exchanges">
-  <h2 className="text-xl font-semibold">Product exchanges <span className="text-sm text-slate-500">— local test environment</span></h2>
+  <h2 className="text-xl font-semibold">Product exchanges <span className="text-sm text-slate-500">— {academic?'cloud academic demo':'local test environment'}</span></h2>
   <p className="my-2 text-sm">Voluntary equal or higher-value replacements require a different Manager/Admin reviewer. Returned medicines stay quarantined. Lower-value, defective, statutory, prescription and discounted cases require authorized handling; this workflow does not limit applicable remedies.</p>
   {error&&<p role="alert" className="my-3 text-red-800">{error}</p>}
   {attempt&&<aside className="my-3 border p-3" aria-label="Uncertain exchange attempt"><p>Operation outcome must be checked before any new request. Reference {attempt.request_id}.</p><button className={secondaryClass} disabled={busy} onClick={recover}>Check exchange outcome</button></aside>}
@@ -53,7 +56,7 @@ function ExchangeDetails({id,revision,onClose,refresh,onPost,blocked}){
  const {user}=useAuth(),result=useInventory('/exchanges/'+id,revision),[quote,setQuote]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[reason,setReason]=useState(''),[tender,setTender]=useState('0')
  async function act(path,body){setBusy(true);setError('');try{await requestJson('/exchanges/'+id+path,{method:'POST',body:JSON.stringify(body)});setQuote(null);refresh()}catch(e){setQuote(null);setError(e.message)}finally{setBusy(false)}}
  const row=result.data?.data,reviewer=row&&['manager','admin'].includes(user.role)&&row.initiated_by!==user.user_id&&row.state==='pending'
- return <Modal title="Exchange details" onClose={onClose} busy={busy} wide>
+ return <Modal title="Exchange details" onClose={onClose} busy={busy} wide><AcademicDemoNotice/>
   {result.loading&&<p>Loading exchange…</p>}{result.error&&<p role="alert">{result.error}</p>}{error&&<p role="alert">{error}</p>}
   {row&&<><p>{id} · <strong>{row.state}</strong> · Initiated by User #{row.initiated_by}</p><p>{row.confirmation_label}</p><p>Original sale #{row.root_sale_id}. Policy {row.policy_version}. {row.reason}</p><Breakdown financial={row}/>
    {row.items.map(i=><p key={i.exchange_item_id}>{i.product_name} · batch {i.batch_no} · expiry {i.expiry_date.slice(0,10)} · {i.quantity} × PHP {i.unit_price} = PHP {i.payable}</p>)}

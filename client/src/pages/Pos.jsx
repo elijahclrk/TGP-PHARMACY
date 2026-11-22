@@ -11,9 +11,10 @@ import Modal from '../components/Modal'
 import { requestJson } from '../auth/api'
 import { useInventory } from '../inventory/useInventory'
 import { buttonClass, secondaryClass, fieldClass, Paging, QueryState } from '../inventory/shared'
+import AcademicDemoNotice from '../components/AcademicDemoNotice'
 
 export function Receipt({ data, onClose, historical=false }) {
-  return <Modal title={historical?'Historical transaction':'Transaction complete'} wide onClose={onClose}><section aria-label="Receipt" className="print-transaction">
+  return <Modal title={historical?'Historical transaction':'Transaction complete'} wide onClose={onClose}><section aria-label="Receipt" className="print-transaction"><AcademicDemoNotice/>
     <p className="receipt-brand">The Generics Pharmacy</p><p className="text-sm text-slate-500">Lawang Bato Branch · Transaction confirmation</p>
     <p className="mt-3 break-all">{data.receipt_no}</p>
     <p className="text-sm text-slate-600">Cashier: {data.username} · {new Date(data.sale_date).toLocaleString('en-PH', { timeZone:'Asia/Manila' })}</p>

@@ -47,3 +47,12 @@ server/database/migrations/proposed/batch7/*
 server/database/migrations/proposed/batch14/*
 !server/database/migrations/proposed/batch14/013_operational_completion.sql
 client/src/**/*.test.*
+server/academic
+!server/database/migrations/001_phase3_baseline.sql
+!server/database/migrations/proposed/002_supported_integrity.sql
+!server/database/migrations/proposed/003_return_sale_item_link.sql
+!server/database/migrations/proposed/004_lookup_indexes.sql
+!server/database/migrations/proposed/batch1/009_discount_financial_snapshots.sql
+!server/database/migrations/proposed/batch10/
+server/database/migrations/proposed/batch10/*
+!server/database/migrations/proposed/batch10/011_local_benefit_checkout.sql

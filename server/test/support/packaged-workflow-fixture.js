@@ -6,8 +6,8 @@ import {join,resolve,sep,basename} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 
-export const canonicalFiles=['007_decision_workflows.sql','008_return_dispositions.sql'];
-export const extraCanonicalFiles=['batch7/010_in_app_notification_preferences.sql','batch13/012_local_product_exchanges.sql','batch14/013_operational_completion.sql'];
+export const canonicalFiles=['007_decision_workflows.sql','008_return_dispositions.sql','009_discount_financial_snapshots.sql'];
+export const extraCanonicalFiles=['002_supported_integrity.sql','003_return_sale_item_link.sql','004_lookup_indexes.sql','batch10/011_local_benefit_checkout.sql','batch7/010_in_app_notification_preferences.sql','batch13/012_local_product_exchanges.sql','batch14/013_operational_completion.sql'];
 export async function packagedWorkflowFixture(){
   const docker=await readFile(new URL('../../../Dockerfile',import.meta.url),'utf8');
   const ignore=await readFile(new URL('../../../.dockerignore',import.meta.url),'utf8');
@@ -24,6 +24,7 @@ export async function packagedWorkflowFixture(){
     await mkdir(resources,{recursive:true});
     await cp(new URL('../../src/',import.meta.url),join(runtime,'src'),{recursive:true});
     await cp(new URL('../../package.json',import.meta.url),join(runtime,'package.json'));
+    await cp(new URL('../../database/migrations/001_phase3_baseline.sql',import.meta.url),join(runtime,'database/migrations/001_phase3_baseline.sql'));
     for(const name of canonicalFiles)await cp(new URL('../../database/migrations/proposed/batch1/'+name,import.meta.url),join(resources,name));
     for(const name of extraCanonicalFiles){const source='server/database/migrations/proposed/'+name;assert(docker.includes(source));assert(ignore.split(/\r?\n/).includes('!'+source));const target=join(runtime,'database/migrations/proposed',name);await mkdir(resolve(target,'..'),{recursive:true});await cp(new URL('../../database/migrations/proposed/'+name,import.meta.url),target);assert.deepEqual(await readFile(target),await readFile(new URL('../../database/migrations/proposed/'+name,import.meta.url)));}
     const module=await import(pathToFileURL(join(runtime,'src','repositories','workflows.repository.js')).href);

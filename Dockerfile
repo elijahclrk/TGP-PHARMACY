@@ -20,6 +20,10 @@ COPY --chown=node:node server/database/migrations/proposed/batch1/007_decision_w
 COPY --chown=node:node server/database/migrations/proposed/batch13/012_local_product_exchanges.sql ./database/migrations/proposed/batch13/
 COPY --chown=node:node server/database/migrations/proposed/batch7/010_in_app_notification_preferences.sql ./database/migrations/proposed/batch7/
 COPY --chown=node:node server/database/migrations/proposed/batch14/013_operational_completion.sql ./database/migrations/proposed/batch14/
+COPY --chown=node:node server/database/migrations/001_phase3_baseline.sql ./database/migrations/
+COPY --chown=node:node server/database/migrations/proposed/002_supported_integrity.sql server/database/migrations/proposed/003_return_sale_item_link.sql server/database/migrations/proposed/004_lookup_indexes.sql ./database/migrations/proposed/
+COPY --chown=node:node server/database/migrations/proposed/batch1/009_discount_financial_snapshots.sql ./database/migrations/proposed/batch1/
+COPY --chown=node:node server/database/migrations/proposed/batch10/011_local_benefit_checkout.sql ./database/migrations/proposed/batch10/
 COPY --from=frontend --chown=node:node /build/client/dist /app/client/dist
 USER node
 EXPOSE 5000

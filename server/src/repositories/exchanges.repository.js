@@ -4,11 +4,13 @@ import {createAuthRepository} from './auth.repository.js';
 import {createPosRepository} from './pos.repository.js';
 import {createPreparedWorkflows} from '../services/prepared-workflows.js';
 import {createWorkflowsRepository} from './workflows.repository.js';
+import {isAcademic} from '../academic/capabilities.js';
 import {exchangeDraft,createInput,postInput,decisionInput,cancelInput,cents,amount,settlement,fingerprint,quoteTokens,fail} from '../services/exchange-validation.js';
 const canonical=new URL('../../database/migrations/proposed/batch13/012_local_product_exchanges.sql',import.meta.url);
 const tables=['product_exchanges','exchange_claims','exchange_pricing_lines','exchange_items','exchange_settlements','exchange_events'];
 export function createExchangesRepository({poolProvider,secret,policy,isolatedCapability}){
- if(!isolatedCapability?.localOnly||!isolatedCapability?.tlsVerified||policy?.testOnly!==true||!policy.version)throw Error('Verified isolated exchange capability required');
+ const cloud=isAcademic(isolatedCapability,poolProvider);
+ if((!cloud&&(!isolatedCapability?.localOnly||!isolatedCapability?.tlsVerified))||policy?.testOnly!==true||!policy.version)throw Error('Verified isolated exchange capability required');
  const auth=createAuthRepository(poolProvider),pos=createPosRepository(poolProvider),workflows=createPreparedWorkflows(poolProvider),tokens=quoteTokens(secret);
  const one=async(c,sql,args=[])=>{const row=(await c.query(sql,args)).rows[0];if(!row)fail(404);return row;};
  async function ready(c){
@@ -42,7 +44,7 @@ export function createExchangesRepository({poolProvider,secret,policy,isolatedCa
   claims:(await c.query('SELECT * FROM exchange_claims WHERE exchange_id=$1 ORDER BY return_id',[id])).rows,
   settlement:(await c.query('SELECT cash_due::text,tender::text,change_due::text FROM exchange_settlements WHERE exchange_id=$1',[id])).rows[0]??null,
   events:(await c.query('SELECT event_kind,actor_id,occurred_at FROM exchange_events WHERE exchange_id=$1 ORDER BY occurred_at,event_id',[id])).rows,
-  confirmation_label:'Internal exchange transaction confirmation — not a registered fiscal invoice',local_only:true};}
+  confirmation_label:'Internal exchange transaction confirmation — not a registered fiscal invoice',local_only:!cloud,academic_demo:cloud};}
  async function snapshot(c,actor,input,exclude=null){
   const draft=exchangeDraft.parse(input);if(draft.route!=='voluntary')fail(422,'AUTHORIZED_REMEDY_REVIEW_REQUIRED');
   const claims=[];let root=null,credit=0n;
@@ -75,7 +77,7 @@ export function createExchangesRepository({poolProvider,secret,policy,isolatedCa
   return {quote,fingerprint:fingerprint(quote)};
  }
  return {
-  async availability(actor){try{return await tx(actor,async c=>({available:await ready(c),local_only:true,modes:['voluntary_equal','voluntary_higher'],unavailable:['lower_value','statutory','discounted','prescription','replacement_return_posting']}));}catch{return {available:false,local_only:true,modes:[]};}},
+  async availability(actor){try{return await tx(actor,async c=>({available:await ready(c),local_only:!cloud,academic_demo:cloud,modes:['voluntary_equal','voluntary_higher'],unavailable:['lower_value','statutory','discounted','prescription','replacement_return_posting']}));}catch{return {available:false,local_only:!cloud,modes:[]};}},
   async sources(actor,receipt){return tx(actor,async c=>{
    const rows=(await c.query(`SELECT s.sale_id,s.receipt_no,i.sale_item_id,b.product_id,p.name AS product_name,b.batch_no,i.quantity AS sold,i.unit_price::text,r.return_id,r.quantity AS accepted,r.received_quantity,r.decision_state,
     coalesce((SELECT sum(cl.quantity) FROM exchange_claims cl JOIN product_exchanges e USING(exchange_id) WHERE cl.return_id=r.return_id AND e.state IN('approved','posted')),0)::text AS allocated

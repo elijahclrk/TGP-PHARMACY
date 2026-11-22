@@ -29,7 +29,7 @@ export function createReportsRouter({config,sessions,authRepository,repository,i
       result=await repository.products({...query,page:1,limit:10001});
       if(result.total>10000)return res.status(422).json({success:false,message:'Report exceeds 10,000 rows. Narrow the date range.'});
     }else result=await repository[kind](query);
-    const file=await generateReportExport(kind,format,result,query);
+    const file=await generateReportExport(kind,format,result,query,{academicDemo:config.academicDemo===true});
     res.set('Content-Type',format==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf');
     res.set('Content-Disposition',`attachment; filename="tgp-${kind}.${format}"`).send(file);
   });

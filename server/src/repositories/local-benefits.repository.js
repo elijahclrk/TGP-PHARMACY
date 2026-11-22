@@ -7,6 +7,7 @@ import {localBenefitDraft,localBenefitPolicy,calculateLocalBenefits,allocateBene
 import {quoteFingerprint} from '../services/pos-quotes.js';
 import {cents,amount} from '../services/prepared-benefits.js';
 import {insertWithId} from './auth.repository.js';
+import {isAcademic} from '../academic/capabilities.js';
 export const benefitVerificationInput=cartInput.safeExtend({draft:localBenefitDraft});
 export const benefitQuoteInput=cartInput.safeExtend({benefit:z.enum(['senior','pwd']),verification_id:z.uuid()});
 export const benefitCheckoutInput=benefitQuoteInput.safeExtend({request_id:z.uuid(),amount_paid:z.string().regex(/^(0|[1-9]\d{0,11})(\.\d{1,2})?$/),quote_token:z.string().max(1024).optional()});
@@ -15,7 +16,8 @@ const conflict=(correctable=true)=>{throw Object.assign(new Error('Review a fres
 const invalid=()=>{throw Object.assign(new Error('Documentary verification is incomplete or inconsistent.'),{status:422,correctable:true,code:'BENEFIT_DOCUMENTS_INVALID'});};
 const canon=items=>[...items].sort((a,b)=>a.product_id-b.product_id).map(({product_id,quantity})=>({product_id,quantity}));
 export function createLocalBenefitsRepository({poolProvider,posRepository,secret,isolatedCapability}){
- if(isolatedCapability?.localOnly!==true||isolatedCapability?.tlsVerified!==true||!secret)unavailable();
+ const cloud=isAcademic(isolatedCapability,poolProvider);
+ if((!cloud&&(isolatedCapability?.localOnly!==true||isolatedCapability?.tlsVerified!==true))||!secret)unavailable();
  const digest=value=>createHmac('sha256',secret).update('tgp-benefit-private-v2:'+JSON.stringify(value)).digest('hex');
  const sign=(actor,fingerprint)=>{const body=Buffer.from(JSON.stringify({v:2,actor,mode:'benefit',fingerprint,expires:Date.now()+300000})).toString('base64url');return body+'.'+digest(body);};
  function verify(token,actor){try{const[body,sig]=token.split('.'),expected=digest(body);if(sig.length!==expected.length||!timingSafeEqual(Buffer.from(sig),Buffer.from(expected)))return null;const data=JSON.parse(Buffer.from(body,'base64url'));return data.v===2&&data.actor===actor&&data.mode==='benefit'&&data.expires>Date.now()?data.fingerprint:null;}catch{return null;}}
@@ -70,14 +72,14 @@ export function createLocalBenefitsRepository({poolProvider,posRepository,secret
  return {
   async availability(c){try{if(!await ready(c))return false;await policy(c,'senior');await policy(c,'pwd');return true;}catch{return false;}},
   async verification(c,actor,input){
-   const data=benefitVerificationInput.parse(input);if(!await ready(c))unavailable();const p=await policy(c,data.draft.benefit);const id=randomUUID();
+   const data=benefitVerificationInput.parse(input);if(cloud&&(!data.draft.customer.name.startsWith('SYNTHETIC ')||!data.draft.customer.id.startsWith('SYNTHETIC-')))invalid();if(!await ready(c))unavailable();const p=await policy(c,data.draft.benefit);const id=randomUUID();
    await c.query(`INSERT INTO benefit_verifications(verification_id,actor_id,policy_id,benefit_type,customer_name,customer_id,document_snapshot,cart,expires_at)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,CURRENT_TIMESTAMP+interval '15 minutes')`,[id,actor.user_id,p.policy_id,data.draft.benefit,data.draft.customer.name,data.draft.customer.id,{idType:data.draft.customer.idType,documents:data.draft.documents},JSON.stringify(canon(data.items))]);
    return {verification_id:id};
   },
   async quote(c,actor,input){const s=await snapshot(c,actor,benefitQuoteInput.parse(input));return {
    items:s.calculation.lines.map(l=>({product_id:l.productId,name:l.productName,quantity:l.quantity,unit_price:l.unitPrice,line_total:l.net,discount:l.discount,vat_removed:l.vatRemoved,vat:l.vat,eligible:l.benefitEligible,price_basis:l.priceBasis})),
-   total:s.calculation.totals.net,financial:s.calculation.totals,quote_token:sign(actor.user_id,s.fingerprint),local_only:true};},
+   total:s.calculation.totals.net,financial:s.calculation.totals,quote_token:sign(actor.user_id,s.fingerprint),local_only:!cloud,academic_demo:cloud};},
   async checkout(c,actor,input,audit){
    const data=benefitCheckoutInput.parse(input),reference='POS-'+data.request_id.toLowerCase();
    const requestDigest=digest({actor:actor.user_id,benefit:data.benefit,verification:data.verification_id,items:canon(data.items),cash:amount(cents(data.amount_paid))});
