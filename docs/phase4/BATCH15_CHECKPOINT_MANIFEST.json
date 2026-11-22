@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "projectDate": "2026-11-22",
+  "timezone": "Asia/Manila",
+  "purpose": "Owner review pending; nothing staged, committed, pushed or deployed",
+  "branch": "main",
+  "baseHead": "d4c289edabb553ed54dfde507dc84af479cc99d8",
+  "proposedCommitMessage": "feat: checkpoint local exchanges, operational completion and MVP handoff",
+  "pathCount": 83,
+  "modifiedTracked": 47,
+  "newUntracked": 36,
+  "hashConvention": "SHA-256 of raw working-tree bytes, before Git LF/CRLF normalization. Manifest self-entry intentionally has null hash; verify all other files plus exact path set.",
+  "protectedAppliedMigrations": [
+    {
+      "path": "server/database/migrations/001_phase3_baseline.sql",
+      "sha256": "beb63ee013b74b7d3bde6e6f1d24adaccf7b2ca01dfa2beab7252e4a5c05ead2",
+      "sameAsHead": true
+    },
+    {
+      "path": "server/database/migrations/proposed/002_supported_integrity.sql",
+      "sha256": "dc16e6f9338d53bbb1e39d208d8deb285acb1fd3ea1754e9cffb094227796535",
+      "sameAsHead": true
+    },
+    {
+      "path": "server/database/migrations/proposed/004_lookup_indexes.sql",
+      "sha256": "d327e2845119b31a9b3b509bfc56f21aac3225a0d043dd393195df71626ea23f",
+      "sameAsHead": true
+    }
+  ],
+  "scan": {
+    "pathsReviewed": 83,
+    "forbiddenPaths": 0,
+    "unexplainedSecretPatterns": 0,
+    "scope": "Current modified and nonignored untracked candidate files only; ignored environment/private originals are not read. Synthetic fixture recipes remain source, generated records/artifacts excluded. Manual contextual review is recorded in BATCH15_RESULTS.md; no certification implied."
+  },
+  "files": [
+    {
+      "path": ".dockerignore",
+      "status": "modified",
+      "sha256": "8e645b311e931a9823c24fb7d22bf5127fcc5aa39fda1fa9444e0769a6bea928"
+    },
+    {
+      "path": "Dockerfile",
+      "status": "modified",
+      "sha256": "1c9146e15c791dd49eb21dcc2c198b82baa4a51b7c0acdeed0a203639302a46f"
+    },
+    {
+      "path": "client/src/accounts/AccountDetails.jsx",
+      "status": "modified",
+      "sha256": "442581fd8a56d6469bdf8fd238fb1028626099e0fc9277820c87bd9ae424f687"
+    },
+    {
+      "path": "client/src/accounts/AccountEdit.jsx",
+      "status": "new",
+      "sha256": "fd065961cf04abc996c60f036463c431767317420c2f04af442974267bbb994e"
+    },
+    {
+      "path": "client/src/index.css",
+      "status": "modified",
+      "sha256": "10ae9b299ce9818209c555ead9db1c83cf331aee0ff32e8f84bbfd5a5c97aa2c"
+    },
+    {
+      "path": "client/src/inventory/ProductForm.jsx",
+      "status": "modified",
+      "sha256": "c4f6bf4ee40a6b812364853c7e05020ecbf08b3eb6ae6d77b5a0c62427b63de6"
+    },
+    {
+      "path": "client/src/inventory/inventory.test.jsx",
+      "status": "modified",
+      "sha256": "d73959eed0e8f96fbfb8efda424ff2b9933448499a89819c4d695712213dad58"
+    },
+    {
+      "path": "client/src/inventory/useOperations.js",
+      "status": "new",
+      "sha256": "a48a8eba4ca9d6a2b95d651e58ad92544273567456090c0a371d6301763056a0"
+    },
+    {
+      "path": "client/src/notifications/preferences.js",
+      "status": "modified",
+      "sha256": "6ab4c5b3107e4cf1e314e005e747bece81583e9c3a7e6aca06d8e89099838de3"
+    },
+    {
+      "path": "client/src/pages/Approvals.jsx",
+      "status": "modified",
+      "sha256": "48ecbbc008a285c6c5d5893da82e23aa59d25b5f9f4a880d18bf39c0e1ad0eba"
+    },
+    {
+      "path": "client/src/pages/ControlledWorkflows.jsx",
+      "status": "modified",
+      "sha256": "d00de153e603bd47e777f84c17842dc3ad41896750f49891c6d74a1c2b1246ab"
+    },
+    {
+      "path": "client/src/pages/Notifications.jsx",
+      "status": "modified",
+      "sha256": "459cee9b7ad35f1c3c803b65a503e25013e9a8acaf96523266b8f3ef39d3415e"
+    },
+    {
+      "path": "client/src/pages/Pos.jsx",
+      "status": "modified",
+      "sha256": "ca74b6d6891e86f4dc170a4404a207cc67143fdb1b09c248dc71df81d15d829b"
+    },
+    {
+      "path": "client/src/pages/Products.jsx",
+      "status": "modified",
+      "sha256": "6920eed0a97ed02a24a725740c6d9ea5af63d0123127ae1fa06b7f9c27349d2a"
+    },
+    {
+      "path": "client/src/pages/Purchasing.jsx",
+      "status": "modified",
+      "sha256": "c9eb7548b2c499952628679ad225dca6bb34ed098a9bb06e771d122fe4c81a84"
+    },
+    {
+      "path": "client/src/pages/Users.jsx",
+      "status": "modified",
+      "sha256": "64f6506e9c78eccc0507523f0c1166b5821e44336c016fc2911b3430c215d494"
+    },
+    {
+      "path": "client/src/purchasing/LinkedReceiving.jsx",
+      "status": "new",
+      "sha256": "b36b6ac76bb98832d86a482c1d8a8b9963a5cef72ee0e870696d8ed76d3cf4b6"
+    },
+    {
+      "path": "client/src/purchasing/OrderOperations.jsx",
+      "status": "new",
+      "sha256": "c26b6909f004bb5b5de02e4b51049051d70eee37174d02881403b4f0bf33d685"
+    },
+    {
+      "path": "client/src/purchasing/PurchasingForm.jsx",
+      "status": "modified",
+      "sha256": "086ddbcf7d9ee374aad30980bf09583c472bc171a941c4590ff6c28e3be3a15e"
+    },
+    {
+      "path": "client/src/purchasing/operations.test.jsx",
+      "status": "new",
+      "sha256": "79cc353881586e2a52215c1dbd579062cfbca7eb35a7ff17c63944fee2411df7"
+    },
+    {
+      "path": "client/src/purchasing/purchasing.test.jsx",
+      "status": "modified",
+      "sha256": "5c1e14a904f8a80043d02d9b7288eafb0d833406824d1ad4e5a27abc06e70c47"
+    },
+    {
+      "path": "client/src/reports/HistoricalTransaction.jsx",
+      "status": "new",
+      "sha256": "6c6ced211633cd1cbe33e95f9be77b274e9328c04414d1f5fccfb6d5e43a6683"
+    },
+    {
+      "path": "client/src/reports/ReportPanel.jsx",
+      "status": "modified",
+      "sha256": "0ea54fc57bc7ba4f0b59d6d98d7677cf622d25fa23412fe031ca5b0aa28918c7"
+    },
+    {
+      "path": "client/src/workflows/Exchanges.jsx",
+      "status": "new",
+      "sha256": "6a29d4ccaa34e10f7d844a14589ff9d93e8829badb156c2801e613a8fc0348da"
+    },
+    {
+      "path": "client/src/workflows/Exchanges.test.jsx",
+      "status": "new",
+      "sha256": "2d5435d531940ba9171e88b6848a13716edce33ca063172d0b600c1674976bb6"
+    },
+    {
+      "path": "docs/phase4/BATCH12_EXCHANGE_RESEARCH.md",
+      "status": "new",
+      "sha256": "0bf99ab2fd7b6299ed8433bf93e5dba126e06717b4fb65d513fd6a48a3b36a6c"
+    },
+    {
+      "path": "docs/phase4/BATCH12_EXCHANGE_TECHNICAL_SPEC.md",
+      "status": "new",
+      "sha256": "6d6c2cbd842a10ec32efcc5732547c5320ae693fd7bad30a28a43748e21b95da"
+    },
+    {
+      "path": "docs/phase4/BATCH12_EXCHANGE_VALIDATION_CHECKLIST.md",
+      "status": "new",
+      "sha256": "fe6c042769fd0fe7d35ab83f57e0a8c824d312ca49f25562c6449f10750a66fb"
+    },
+    {
+      "path": "docs/phase4/BATCH13_RESULTS.md",
+      "status": "new",
+      "sha256": "7d89fa99395895ddfa00663a6eef3ecf833211f66c6b928d206679966702ce31"
+    },
+    {
+      "path": "docs/phase4/BATCH14_RESULTS.md",
+      "status": "new",
+      "sha256": "a7f6e6046c7e6ad4f6ba3dc128d51093bdd734fac480539f1019129673c07bb6"
+    },
+    {
+      "path": "docs/phase4/BATCH15_ACCEPTANCE_CHECKLIST.md",
+      "status": "new",
+      "sha256": "2c7f3e90f86421b954f531497abf3dedd3431170450561edf0a15067e4ef9740"
+    },
+    {
+      "path": "docs/phase4/BATCH15_CHECKPOINT_FILES.md",
+      "status": "new",
+      "sha256": "e26c7793c2826880bf91cfa01a53b2d1e733bf1e1443f3f89ad153a8f03da77a"
+    },
+    {
+      "path": "docs/phase4/BATCH15_CHECKPOINT_MANIFEST.json",
+      "status": "new",
+      "sha256": null
+    },
+    {
+      "path": "docs/phase4/BATCH15_RELEASE_PLAN.md",
+      "status": "new",
+      "sha256": "1d24800682ba1eae60d7ab17d16924414a160c0b4d5f27597c4d84518e8b04d6"
+    },
+    {
+      "path": "docs/phase4/BATCH15_RESULTS.md",
+      "status": "new",
+      "sha256": "bf3b0f439cc6a48f949e5c517b98ce472f8ef8a7980d44b99433399e5e54d1b5"
+    },
+    {
+      "path": "docs/phase4/FINAL_REQUIREMENTS_MATRIX.md",
+      "status": "modified",
+      "sha256": "70e8b3f6d4bf91788c4461dd6069ee88d7bcd3024e2455a2a72a1ac017bde972"
+    },
+    {
+      "path": "docs/phase4/RELEASE_CHECKLIST.md",
+      "status": "modified",
+      "sha256": "e1314e1886a1a69c015abdd6976fec514a64165f78f193d337a44ae4958471a3"
+    },
+    {
+      "path": "docs/phase4/UAT_CHECKLIST.md",
+      "status": "modified",
+      "sha256": "40c8f4f499cfd9adb740eb3ed10c4ab0111a859e63192eeb6998858b37c1964f"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch13/012_local_product_exchanges.sql",
+      "status": "new",
+      "sha256": "4e3b0def83ad79415f3f40ff88b01bf0c9ac2c38e7faef4d612d2f78105f8c01"
+    },
+    {
+      "path": "server/database/migrations/proposed/batch14/013_operational_completion.sql",
+      "status": "new",
+      "sha256": "2ec49750aedd62f71a836fa2c1ce9101bc6db4435d49504547013329f14ae538"
+    },
+    {
+      "path": "server/src/app.js",
+      "status": "modified",
+      "sha256": "1c75ab552d2cb4d54a3347b5232596f4e4676b70abd638f36da3680dfd29bfce"
+    },
+    {
+      "path": "server/src/middleware/auth.js",
+      "status": "modified",
+      "sha256": "a150da43a8d044a9c74e3c8082716b413283fda953e66650039ca2b9e4f95f64"
+    },
+    {
+      "path": "server/src/middleware/error-handler.js",
+      "status": "modified",
+      "sha256": "579ba4a2623fa10b67f0ac66e4678a3a0217ade2b48fee2624b02fada15e2555"
+    },
+    {
+      "path": "server/src/repositories/auth.repository.js",
+      "status": "modified",
+      "sha256": "721a916754acb512bf8ca0c1d4fb68020a42e5668ceb371fce3bc810a5e99ed3"
+    },
+    {
+      "path": "server/src/repositories/exchanges.repository.js",
+      "status": "new",
+      "sha256": "3832b28d1abba8e876eb3b7146f3cbb27767957c78e8e80c39adf54cb7cb1208"
+    },
+    {
+      "path": "server/src/repositories/inventory.repository.js",
+      "status": "modified",
+      "sha256": "f6fab00979313577c8fab106cd40908c864cd5e85627b5e5efaf1c940058c817"
+    },
+    {
+      "path": "server/src/repositories/operations.repository.js",
+      "status": "new",
+      "sha256": "1997964a9694ff7cb897e83ac2496adf28747ffda990293fe568a7d48be13009"
+    },
+    {
+      "path": "server/src/repositories/pos.repository.js",
+      "status": "modified",
+      "sha256": "c5fba2ea61eaa0032dcda9f3c9eba26a2cdd6256649d40ccf8e545b30ff11921"
+    },
+    {
+      "path": "server/src/repositories/purchasing.repository.js",
+      "status": "modified",
+      "sha256": "e9cd48d17fd690d7114c586f120a196ed649089fe41e16e531702dc57f4f5c90"
+    },
+    {
+      "path": "server/src/repositories/reports.repository.js",
+      "status": "modified",
+      "sha256": "43363b78fed8cf714c6e89477ce2432e0f93f776aaed3999d5d9f06c8a9ac6e5"
+    },
+    {
+      "path": "server/src/routes/auth.routes.js",
+      "status": "modified",
+      "sha256": "add1ac44e3d0198b3b865baec7242c433b30f6ecac30264b8ddc2bb399bead70"
+    },
+    {
+      "path": "server/src/routes/exchanges.routes.js",
+      "status": "new",
+      "sha256": "2454148c5f72be2de88d64239e49b77273e7a18bc9cdc9ca028b3dd17d73bd8d"
+    },
+    {
+      "path": "server/src/routes/inventory.routes.js",
+      "status": "modified",
+      "sha256": "89520f3af0d8dcd815a6f98f977d3a3e71f87578a63a8da204d3392185ae039c"
+    },
+    {
+      "path": "server/src/routes/operations.routes.js",
+      "status": "new",
+      "sha256": "66d7f5cb19beb57c8af344a3c426e4b87cce858dc587594b827d83bccd88fec6"
+    },
+    {
+      "path": "server/src/routes/purchasing.routes.js",
+      "status": "modified",
+      "sha256": "4d0cd44b4758dacbeb02a414d7530943463e46465445e25f8c9c3b4bb0a141f5"
+    },
+    {
+      "path": "server/src/routes/reports.routes.js",
+      "status": "modified",
+      "sha256": "b3d7e3a5afe05c286c191dd00a4bd3487165bef645c085417c0fae6c3870add4"
+    },
+    {
+      "path": "server/src/services/accounts.js",
+      "status": "modified",
+      "sha256": "20f3e1c35789132cd31f83bd37baea3d6bf0b5dbea36a69869e916704fb5ae94"
+    },
+    {
+      "path": "server/src/services/auth-validation.js",
+      "status": "modified",
+      "sha256": "2ffa654e369305efc887db2bf4e39cc388f75d1fdb7eba6e3c909b40e294492e"
+    },
+    {
+      "path": "server/src/services/exchange-validation.js",
+      "status": "new",
+      "sha256": "9f50c8682a873680ae892f8a12d636789e988d8d07e4715544e23fe74db074b5"
+    },
+    {
+      "path": "server/src/services/inventory-validation.js",
+      "status": "modified",
+      "sha256": "ecb38587d204534db20fa9caa980bb077bcb4183b30b9584aac193065424e697"
+    },
+    {
+      "path": "server/src/services/prepared-workflows.js",
+      "status": "modified",
+      "sha256": "7c67181e0c1642bc6e0cbf243de5e5e9a7af2e76a8538eadff46cf7625802925"
+    },
+    {
+      "path": "server/src/services/purchasing-validation.js",
+      "status": "modified",
+      "sha256": "1bcb1f3d8044efbdfcd5f427beb00406afba261e1bfac8226679c358ed713aad"
+    },
+    {
+      "path": "server/src/services/report-exports.js",
+      "status": "modified",
+      "sha256": "f637cbc3bc9c764b979ca2bbd6e959ef1b8cfacc6e88aa1faf5f1439a3452d34"
+    },
+    {
+      "path": "server/src/services/report-validation.js",
+      "status": "modified",
+      "sha256": "17a9357bbf2b2099f2e5b9e0d91562d459be90b27ab1c09b1ba9ace8fd9cae25"
+    },
+    {
+      "path": "server/src/services/sessions.js",
+      "status": "modified",
+      "sha256": "a24c726e32d9e9df9f8e8663467f2216583ce4912e54f2437d30bac63873edf8"
+    },
+    {
+      "path": "server/test/auth.integration.test.js",
+      "status": "modified",
+      "sha256": "4439df86617d8278310fb8dd8dc96767d0b25e774c620eb2a9406752e62d6e80"
+    },
+    {
+      "path": "server/test/checkpoint-review.test.js",
+      "status": "new",
+      "sha256": "c38f594ed5b0842514da8cec6fe6445d02a0c1859fbae8f94e32ea8f230ad08a"
+    },
+    {
+      "path": "server/test/exchanges.integration.test.js",
+      "status": "new",
+      "sha256": "35cbb5f8d2ab604fcfc04b755fbe3029a8aa6f6a53495ed347843ba525cd91c0"
+    },
+    {
+      "path": "server/test/exchanges.test.js",
+      "status": "new",
+      "sha256": "f4f0b9f92f9cb2d704e15288a550a8c7b81ff315fab1d14ee960e1be2fce6ea3"
+    },
+    {
+      "path": "server/test/local-demo.test.js",
+      "status": "modified",
+      "sha256": "4d76a3ad4280314c1151fa6feb7c48b430dbb8be5daffdb2bfe9fe2fe05072ac"
+    },
+    {
+      "path": "server/test/operations.integration.test.js",
+      "status": "new",
+      "sha256": "cfc5c0ea4ef665851d466a1f7cd7db998fa020b04a0d57e8aaedf15e4c230105"
+    },
+    {
+      "path": "server/test/support/exchange-fixture.js",
+      "status": "new",
+      "sha256": "23a8b05b645373263d33aabeb9d9c0ecf1634b126fdd4559a116899fa03564d9"
+    },
+    {
+      "path": "server/test/support/packaged-workflow-fixture.js",
+      "status": "modified",
+      "sha256": "ef1d56e910e65b057c4f24c4ccd48cac4f5e5223c8aa56e5469d6b8c326b4498"
+    },
+    {
+      "path": "server/test/workflow-design.test.js",
+      "status": "modified",
+      "sha256": "09f62f49da9e8d29a9253bfe0f2b2dfd16719e19e196c706fe52398cd8bff3f9"
+    },
+    {
+      "path": "server/testing/batch13-browser.mjs",
+      "status": "new",
+      "sha256": "7653d6406296a8c8c450fa5c209e78f68de10d0fe8fd30e68fbbee7460416501"
+    },
+    {
+      "path": "server/testing/batch14-browser.mjs",
+      "status": "new",
+      "sha256": "56511a756e6a9d25594fb91108aedd8ef8d8fbc6b1962a875b0ed0061aa1b462"
+    },
+    {
+      "path": "server/testing/batch15-browser.mjs",
+      "status": "new",
+      "sha256": "68728ea4c5f3e41b7e87722644a0f6d5a22281879a9d950b06d0ca30e9860e48"
+    },
+    {
+      "path": "server/testing/batch4-uat.mjs",
+      "status": "modified",
+      "sha256": "216db78aad2c561cbf6bf5429bcfc9a6ffc10466f7336e5b7e4119a025ba58a7"
+    },
+    {
+      "path": "server/testing/local-demo.mjs",
+      "status": "modified",
+      "sha256": "5ed6cc05e7b5205da2f89dd35cf0d7c2cba54a88f5c763a74de813354e06553e"
+    },
+    {
+      "path": "server/testing/local-exchange-runtime.mjs",
+      "status": "new",
+      "sha256": "67dba1c4b174c9c972e06fba7d9bcbf41dfc45c6044017557a1a026fb6c8ff05"
+    },
+    {
+      "path": "server/testing/local-operations-runtime.mjs",
+      "status": "new",
+      "sha256": "b2be366b187c0a8aea57398d31372dda8e240e147238d4343119188f27c336dc"
+    },
+    {
+      "path": "server/testing/local-uat-app.mjs",
+      "status": "modified",
+      "sha256": "c52d5873064d68274a506230324b54075cc27ca7ef37c587de493e1cb3ab6a7f"
+    },
+    {
+      "path": "server/testing/review-checkpoint.mjs",
+      "status": "new",
+      "sha256": "328d9be1aef005c50b40e6a62342e7070883f328787388591dfa003e8ab8b891"
+    }
+  ]
+}

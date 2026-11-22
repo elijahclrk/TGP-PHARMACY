@@ -1,0 +1,57 @@
+import { displayValue } from '../inventory/format'
+import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../auth/auth-context'
+import Workspace from '../components/Workspace'
+import { formatPHP } from '../utils/money'
+import PageHeading from '../components/PageHeading'
+import { useInventory } from '../inventory/useInventory'
+import BatchForm from '../inventory/BatchForm'
+import { fieldClass, buttonClass, secondaryClass, ExpiryBadge, Paging, QueryState } from '../inventory/shared'
+
+export default function Inventory() {
+  const [params] = useSearchParams()
+  const productId = params.get('product_id') || ''
+  const initialStatus = ['near_expiry', 'expiring_today', 'expired'].includes(params.get('status')) ? params.get('status') : 'all'
+  return <BatchInventory key={`${productId}:${initialStatus}`} productId={productId} initialStatus={initialStatus} />
+}
+function BatchInventory({ productId, initialStatus }) {
+  const { user } = useAuth()
+  const canManage = ['admin', 'manager'].includes(user.role)
+  const [query, setQuery] = useState({ q: '', status: initialStatus, page: 1 })
+  const [revision, setRevision] = useState(0)
+  const [editor, setEditor] = useState(null)
+  const [notice, setNotice] = useState('')
+  const result = useInventory(`/inventory/batches?${new URLSearchParams({ ...query, limit: 20, ...(productId ? { product_id: productId } : {}) })}`, `${revision}:${user.role}`)
+  const product = useInventory(productId ? `/products/${encodeURIComponent(productId)}` : '/products?limit=1', revision)
+  function search(event) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    setQuery({ q: data.get('q'), status: data.get('status'), page: 1 })
+  }
+  const saved = () => { setEditor(null); setNotice('Batch metadata saved. Quantity unchanged.'); setRevision(value => value + 1) }
+  return <Workspace>
+    <PageHeading title={initialStatus === 'near_expiry' ? 'Inventory alerts' : 'Batches'} description={productId ? product.data?.data?.name || 'Product batches' : undefined} action={canManage && productId && product.data?.data?.product_id && <button onClick={() => setEditor({})} className={buttonClass}>Add zero-stock batch</button>} />
+    {productId ? <Link to="/inventory" className="mb-5 inline-block text-sm font-semibold text-red-700">View all inventory</Link> : canManage && <p className="mb-5 text-sm text-slate-600">To add a batch, choose a product from the <Link to="/products" className="font-semibold text-red-700 underline">product catalog</Link>.</p>}
+    {productId && product.error && <p role="alert" className="mb-5 text-red-800">{product.error}</p>}
+    {notice && <p role="status" className="mb-5 rounded-lg bg-green-100 p-3 text-sm text-green-900">{notice}</p>}
+    {editor && canManage && <BatchForm key={editor.batch_id ?? productId} batch={editor.batch_id ? editor : null} productId={productId} onSaved={saved} onCancel={() => setEditor(null)} />}
+    <section className="overflow-hidden rounded-sm border border-slate-200 bg-white shadow-none">
+      <form onSubmit={search} className="grid items-end gap-4 border-b border-slate-100 p-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div><label htmlFor="batch-search" className="mb-2 block text-sm font-medium">Search</label><input id="batch-search" name="q" placeholder="Product, generic name or batch number" maxLength={200} className={fieldClass} /></div>
+        <div><label htmlFor="expiry-filter" className="mb-2 block text-sm font-medium">Expiry filter</label><select id="expiry-filter" name="status" defaultValue={initialStatus} className={fieldClass}><option value="all">All batches</option><option value="near_expiry">Upcoming expiry within three months</option><option value="expiring_today">Expires today with stock</option><option value="expired">Expired with stock</option></select></div>
+        <button className={secondaryClass}>Search batches</button>
+      </form>
+      <QueryState result={result} retry={() => setRevision(value => value + 1)} empty="No batches found" />
+      {!result.loading && !result.error && result.data?.data.length > 0 && <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-slate-600"><tr>{['Product / batch', 'Expiry date', 'On hand', ...(canManage ? ['Cost price'] : []), 'Selling price', 'Expiry status', ...(canManage ? ['Actions'] : [])].map(label => <th key={label} className="whitespace-nowrap px-5 py-4 font-medium">{label}</th>)}</tr></thead>
+        <tbody className="divide-y divide-slate-100">{result.data.data.map(batch => <tr key={batch.batch_id} data-expiring={batch.expiry_status === 'near_expiry'} className="hover:bg-slate-50">
+          <td className="px-5 py-4"><span className="font-semibold">{batch.product_name || 'Unnamed product'}</span><div className="mt-1 text-slate-500">{batch.batch_no || 'Batch number not set'}</div></td>
+          <td className="px-5 py-4 whitespace-nowrap">{displayValue(batch.expiry_date)}</td><td className="px-5 py-4 tabular-nums">{displayValue(batch.qty_on_hand)}</td>
+          {canManage && <td className="px-5 py-4 tabular-nums">{formatPHP(batch.cost_price)}</td>}<td className="px-5 py-4 tabular-nums">{formatPHP(batch.selling_price)}</td>
+          <td className="px-5 py-4"><ExpiryBadge batch={batch} /></td>{canManage && <td className="px-5 py-4"><button onClick={() => setEditor(batch)} aria-label={`Edit batch ${batch.batch_no}`} className="whitespace-nowrap font-semibold text-red-700">Edit metadata</button></td>}
+        </tr>)}</tbody></table></div>}
+      {!result.loading && !result.error && result.data && <Paging data={result.data} onPage={page => setQuery(value => ({ ...value, page }))} />}
+    </section>
+    <p className="mt-5 text-sm leading-relaxed text-slate-500">Upcoming expiry means after today through three calendar months from the Asia/Manila business date{result.data?.near_expiry_through ? ` (${result.data.business_date} through ${result.data.near_expiry_through})` : ''}. Expired and expiring-today batches are separate and cannot be sold. Quantities are read-only.</p>
+  </Workspace>
+}
