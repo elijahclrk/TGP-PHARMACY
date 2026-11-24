@@ -167,7 +167,7 @@ The project includes System Analysis and Design documentation covering:
 | Refuncion | Administrator / Project Leader |
 | Diaz, I. | Employee / Frontend Developer |
 | De Guzman | Manager / Backend Developer |
-|  | Verifier / Database Developer |
+| Cuajao | Verifier / Database Developer |
 |  | Pharmacist / QA Tester / Documentation |
 
 *Replace the placeholders with the actual project members and roles.*
