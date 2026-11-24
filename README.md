@@ -168,7 +168,7 @@ The project includes System Analysis and Design documentation covering:
 | Diaz, I. | Employee / Frontend Developer |
 | De Guzman | Manager / Backend Developer |
 | Cuajao | Verifier / Database Developer |
-|  | Pharmacist / QA Tester / Documentation |
+| De Vera | Pharmacist / QA Tester / Documentation |
 
 *Replace the placeholders with the actual project members and roles.*
 
