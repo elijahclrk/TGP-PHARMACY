@@ -12,6 +12,11 @@ export const isAcademic=(capability,provider)=>Boolean(academicDetails(capabilit
 // Only a successful signed target + SQL handshake issues a capability.
 export async function verifyAcademicClient(client,config){
  readManifest(Buffer.from(canonical(config.document)).toString('base64'),config.publicKey);
+ return verifyAcademicDatabase(client,config);
+}
+// Operator renewal can check database evidence independently after verifying a
+// historical signature. This function never issues a runtime capability.
+export async function verifyAcademicDatabase(client,config){
  if(client.connection?.stream?.encrypted!==true||client.connection.stream.authorized!==true)refuse();
  const tlsHost=new URL(config.url).hostname;
  const {checkServerIdentity}=await import('node:tls');

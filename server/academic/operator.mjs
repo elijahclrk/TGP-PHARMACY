@@ -48,9 +48,13 @@ export async function protectAndGrant(c,p){
  for(const table of ['discounts','pharmacist_authorizations'])await c.query('CREATE TRIGGER academic_evidence_guard BEFORE INSERT OR UPDATE OR DELETE ON '+id(table)+' FOR EACH ROW EXECUTE FUNCTION academic_runtime_evidence_guard('+literal(p.role)+')');
 }
 export async function runOperator(action,file,{inspect=inspectAcademicTarget}={}){
- if(!['prepare','inspect','review-managed-postgres','init','seed','recover-seed','verify'].includes(action)||!file)refuse();
+ if(!['prepare','inspect','review-managed-postgres','init','seed','recover-seed','verify','renew-review','renew-apply'].includes(action)||!file)refuse();
  const privateFile=resolve(file);
  execFileSync('git',['check-ignore','--quiet',privateFile],{stdio:'ignore',windowsHide:true});
+ if(action==='renew-review'||action==='renew-apply'){
+  const {runRenewal}=await import('./renewal.mjs');
+  return runRenewal(action,privateFile);
+ }
  if(action==='prepare'){
   const keys=generateKeyPairSync('ed25519');
   const template={target:{projectId:'REPLACE',hosts:[],database:'tgp_demo_academic_web',role:'demo_runtime_academic',schema:'public',schemaDigest:'0'.repeat(64)},operatorUrl:'',runtimeUrl:'',origin:'',issuedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+2*86400000).toISOString(),demoId:randomUUID(),seedId:randomUUID(),jwtSecret:randomBytes(48).toString('hex'),privateKeyPem:keys.privateKey.export({type:'pkcs8',format:'pem'}),publicKeyB64:Buffer.from(keys.publicKey.export({type:'spki',format:'pem'})).toString('base64'),passwords:Object.fromEntries(['employee','manager','admin','pharmacist','verifier'].map(n=>[n,randomBytes(24).toString('hex')]))};
@@ -111,6 +115,6 @@ export async function runOperator(action,file,{inspect=inspectAcademicTarget}={}
  }finally{await c.end();}
 }
 if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.url){
- if(process.argv.length!==4){console.error('Use operator.mjs prepare|inspect|review-managed-postgres|init|seed|recover-seed|verify <ignored-private.json>');process.exitCode=1;}
+ if(process.argv.length!==4){console.error('Use operator.mjs prepare|inspect|review-managed-postgres|init|seed|recover-seed|verify|renew-review|renew-apply <ignored-private-file>');process.exitCode=1;}
  else runOperator(process.argv[2],process.argv[3]).then(r=>console.log(JSON.stringify(r))).catch(error=>{console.error(error instanceof AcademicPreflightError?'Academic read-only preflight refused: '+error.check+'. No permissions or data changed.':'Academic operator refused or stopped. Preserve partial state; inspect privately. No automatic reset or retry.');process.exitCode=1;});
 }

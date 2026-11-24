@@ -342,3 +342,55 @@ Free quotas and memory peaks before a scheduled presentation. Free service sleep
 and quota exhaustion can interrupt access. Keep the existing local professor demo
 as the fallback; never reset it as part of cloud setup. No paid upgrade, billing
 change, production connection, commit/push or deployment is authorized here.
+### Renew an initialized academic demo
+
+Use the original private initialization checkpoint and the ignored
+`.env.railway` containing the currently installed signed manifest. The
+operator must have the original signing key and owner connection. The hosted
+service continues to reject expired manifests. The operator can authenticate
+the historical signature solely to compare it with the existing database
+attestation. The new authorization lasts 48 hours and remains subject to the
+seven-day signature limit. Initializing, seeding and changing credentials are
+separate operations.
+
+Run the following in PowerShell. If the temporary Node installation has moved,
+set `$Node24` to the full path to your installed Node 24 executable.
+
+```powershell
+Set-Location 'C:\Users\spori\OneDrive\Documents\TGP_Pharmacy\server'
+$Node24 = Join-Path $env:TEMP 'tgp-node24-qZh55x\node.exe'
+& $Node24 --version
+$Checkpoint = 'academic/private/.env.cloud-initialized'
+# After approval to connect to the academic Neon project
+rtk proxy $Node24 academic/operator.mjs renew-review $Checkpoint
+```
+
+The review uses a read-only transaction. It checks the existing signed
+attestation, TLS and owner/runtime identities, the managed PostgreSQL
+fingerprint, schema and migrations, seed marker, and synthetic evidence.
+After review succeeds and the owner approves the write, use the same private
+checkpoint and run:
+
+```powershell
+rtk proxy $Node24 academic/operator.mjs renew-apply $Checkpoint
+```
+
+Apply stages an ignored `.env.railway-renewed` before changing the database.
+The evidence versions, renewal audit entry and new attestation commit together.
+Keep both runtime files private and retain them if the result is uncertain.
+Run review again to identify a committed retry (`alreadyApplied: true`).
+Rerun apply with the same files to verify a committed renewal or resume an
+uncommitted one. Stop if the file has expired or the attestation matches
+neither file. Recover the matching private artifact from an authorized backup
+before proceeding.
+
+After apply reports `verified: true`, open the TGP-PHARMACY service in Railway.
+Replace only `ACADEMIC_DEMO_MANIFEST_B64` with the matching value from
+`.env.railway-renewed` using the private Variables interface. Apply the staged
+change and manually deploy the reviewed service. Check startup and health, then
+verify HTTPS login, a historical receipt and the academic benefit checkout
+availability. Keep operator credentials and signing keys on the operator
+machine. Archive the old runtime file privately and promote the renewed file
+to `.env.railway` only after successful deployment. The old manifest will fail
+attestation after the database commits, so schedule the database-to-Railway
+cutover in the same maintenance window.
