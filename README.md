@@ -164,10 +164,11 @@ The project includes System Analysis and Design documentation covering:
 
 | Name | Role |
 |---|---|
-| Member 1 | System Analyst / Developer |
-| Member 2 | System Analyst / Developer |
-| Member 3 | System Analyst / Developer |
-| Member 4 | System Analyst / Developer |
+| Refuncion | Administrator / Project Leader / Full-Stack Integration |
+| Diaz, I. | Employee / Frontend Developer |
+| De Guzman | Manager / Backend Developer |
+| Cuajao | Verifier / Database Developer |
+| De Vera | Pharmacist / QA Tester / Documentation |
 
 *Replace the placeholders with the actual project members and roles.*
 
