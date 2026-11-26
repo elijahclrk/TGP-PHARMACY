@@ -201,7 +201,8 @@ The project includes System Analysis and Design documentation covering:
 ## 📄 Project Status
 
 **Academic MVP:** Implemented and locally tested  
-**Cloud Deployment:** In preparation  
+**Cloud Deployment:** Deployed on Railway (Academic Demo)  
+**Cloud Database:** Hosted on Neon PostgreSQL  
 **Commercial Production:** Pending operational and required external approvals
 
 ---
