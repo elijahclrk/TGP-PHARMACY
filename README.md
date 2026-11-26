@@ -96,6 +96,20 @@ The application supports **Administrator, Manager, and Employee** accounts.
 
 ---
 
+## 🔑 Demo Login Accounts
+
+The following accounts are available for authorized academic demonstration and system evaluation.
+
+| Username | Role | Password |
+|---|---|---|
+| demo_employee | Employee | af2a40dfc87fc9068a4854f3dca2da4c592d5a7657ace130 |
+| demo_manager | Manager | 73d51d66fa2fa84fd52210983c3ace97d1c742fe61c40299 |
+| demo_admin | Administrator | e4eb9af1c806914a335fe85f692d51ba2d8dc4c7e0f5f7d3 |
+| demo_pharmacist | Pharmacist | 2ef534673281df5e8faf1c50029910ee8b8e84a27d0745f6 |
+| demo_verifier | Verifier | 6edd9bbeb0e7501d18e632b7171eb5e5cca5c347385650b3 |
+
+---
+
 ## 🛠️ Technology Stack
 
 | Component | Technology |
